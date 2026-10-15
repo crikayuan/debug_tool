@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>调试助手 · HTTP Server 模式 UI 原型</title>
+<style>
+  :root{
+    --primary:#2f6fed; --primary-weak:rgba(47,111,237,.1); --primary-line:rgba(47,111,237,.35);
+    --success:#18a058; --success-weak:rgba(24,160,88,.1);
+    --warning:#f59e0b; --warning-weak:rgba(245,158,11,.12);
+    --danger:#e54545; --danger-weak:rgba(229,69,69,.1);
+    --purple:#8e5cd8;
+    --text:#1f2430; --text-sub:#5a6474; --text-mute:#9099a8;
+    --border:#e6e9f0; --border-strong:#d5dae6;
+    --bg:#f5f7fb; --panel:#fff;
+    --shadow:0 1px 3px rgba(24,36,64,.06),0 6px 18px rgba(24,36,64,.05);
+    --mono:"Cascadia Mono",Consolas,"Courier New",monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif;
+    background:#e9edf5;color:var(--text);padding:18px;
+    display:flex;flex-direction:column;align-items:center;gap:12px;
+  }
+  /* ---------- 评审提示条（正式软件里没有） ---------- */
+  .review-tip{
+    width:1360px;background:#fff;border:1px dashed var(--border-strong);border-radius:8px;
+    padding:8px 14px;font-size:12px;color:var(--text-mute);
+  }
+  .review-tip b{color:var(--warning)}
+
+  /* ---------- 窗口 ---------- */
+  .win{
+    width:1360px;height:820px;background:var(--panel);border-radius:12px;
+    box-shadow:var(--shadow);display:flex;flex-direction:column;overflow:hidden;
+  }
+  .titlebar{
+    height:46px;display:flex;align-items:center;gap:14px;padding:0 16px;
+    border-bottom:1px solid var(--border);flex:none;
+  }
+  .logo{width:20px;height:20px;border-radius:5px;background:var(--primary);
+        display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700}
+  .app-name{font-size:13.5px;font-weight:700;white-space:nowrap}
+  .modes{display:flex;gap:4px;background:var(--bg);padding:3px;border-radius:8px;margin-left:6px}
+  .mode{
+    padding:5px 12px;border-radius:6px;font-size:12.5px;color:var(--text-sub);
+    cursor:pointer;white-space:nowrap;user-select:none;transition:.15s;
+  }
+  .mode:hover{color:var(--primary)}
+  .mode.on{background:#fff;color:var(--primary);font-weight:700;box-shadow:0 1px 3px rgba(24,36,64,.1)}
+  .mode.dim{color:var(--text-mute);cursor:not-allowed}
+  .mode.dim:hover{color:var(--text-mute)}
+  .top-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+  .status-tag{
+    display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:4px 10px;
+    border-radius:20px;background:var(--bg);color:var(--text-sub);font-weight:600;
+  }
+  .status-tag.run{background:var(--success-weak);color:var(--success)}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--text-mute)}
+  .dot.on{background:var(--success);box-shadow:0 0 0 3px var(--success-weak)}
+
+  .body{flex:1;display:flex;min-height:0}
+  /* ---------- 左栏 ---------- */
+  .left{
+    width:264px;flex:none;border-right:1px solid var(--border);background:#fcfdff;
+    display:flex;flex-direction:column;min-height:0;
+  }
+  .left-scroll{flex:1;overflow-y:auto;padding:10px 12px}
+  .sec{border:1px solid var(--border);border-radius:9px;background:#fff;margin-bottom:9px;overflow:hidden}
+  .sec-head{
+    display:flex;align-items:center;gap:7px;padding:9px 11px;cursor:pointer;user-select:none;
+    font-size:12.5px;font-weight:700;color:var(--text);
+  }
+  .sec-head::before{content:"";width:3px;height:13px;border-radius:2px;background:var(--primary)}
+  .sec-head .arrow{margin-left:auto;color:var(--text-mute);font-size:10px;transition:.2s}
+  .sec.closed .arrow{transform:rotate(-90deg)}
+  .sec.closed .sec-body{display:none}
+  .sec-body{padding:2px 11px 11px}
+  .fld{margin-bottom:9px}
+  .fld:last-child{margin-bottom:2px}
+  .lbl{display:block;font-size:11.5px;color:var(--text-sub);margin-bottom:4px}
+  .inp,select{
+    width:100%;height:28px;border:1px solid var(--border-strong);border-radius:6px;
+    padding:0 8px;font-size:12.5px;color:var(--text);background:#fff;outline:none;
+    font-family:inherit;
+  }
+  .inp:focus,select:focus{border-color:var(--primary);box-shadow:0 0 0 2px var(--primary-weak)}
+  textarea.inp{height:56px;padding:6px 8px;resize:vertical;font-family:var(--mono);font-size:11.5px;line-height:1.5}
+  .row2{display:flex;gap:7px}
+  .row2>*{flex:1}
+  .chk{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-sub);cursor:pointer;margin:7px 0}
+  .chk input{accent-color:var(--primary);width:13px;height:13px}
+  .btn{
+    height:28px;padding:0 12px;border-radius:6px;border:1px solid var(--border-strong);
+    background:#fff;color:var(--text-sub);font-size:12.5px;cursor:pointer;font-family:inherit;
+    display:inline-flex;align-items:center;justify-content:center;gap:5px;transition:.15s;white-space:nowrap;
+  }
+  .btn:hover{border-color:var(--primary);color:var(--primary)}
+  .btn.primary{background:var(--primary);border-color:var(--primary);color:#fff;font-weight:600}
+  .btn.primary:hover{background:#2a63d6;color:#fff}
+  .btn.danger{background:var(--danger);border-color:var(--danger);color:#fff}
+  .btn.danger:hover{background:#cf3c3c;color:#fff}
+  .btn.sm{height:24px;padding:0 9px;font-size:11.5px;border-radius:5px}
+  .btn.full{width:100%}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+  .btn:disabled:hover{border-color:var(--border-strong);color:var(--text-sub)}
+  .hint{font-size:11px;color:var(--text-mute);line-height:1.55;margin-top:5px}
+  /* 统计 */
+  .stat-row{display:flex;justify-content:space-between;font-size:12px;padding:4px 0;color:var(--text-sub)}
+  .stat-row b{color:var(--text);font-family:var(--mono)}
+  .count-strip{
+    flex:none;border-top:1px solid var(--border);padding:9px 12px;background:#fff;
+  }
+  .count-strip .k{font-size:11px;color:var(--text-mute)}
+  .count-strip .v{font-size:12.5px;font-weight:700;font-family:var(--mono)}
+  .count-strip .half{display:flex;gap:14px}
+  .count-strip .half>div{flex:1}
+
+  /* ---------- 中栏 ---------- */
+  .center{flex:1;display:flex;flex-direction:column;min-width:0;background:var(--bg)}
+  /* 连接信息条 */
+  .conn-bar{
+    flex:none;display:flex;align-items:center;gap:10px;padding:9px 14px;background:#fff;
+    border-bottom:1px solid var(--border);flex-wrap:wrap;
+  }
+  .addr-group{display:flex;align-items:center;gap:6px;font-size:12px}
+  .addr-group .k{color:var(--text-mute)}
+  .addr{
+    font-family:var(--mono);font-size:12.5px;font-weight:700;color:var(--primary);
+    background:var(--primary-weak);padding:3px 8px;border-radius:5px;
+  }
+  .addr.lan{color:var(--success);background:var(--success-weak)}
+  .copy-link{
+    font-size:11.5px;color:var(--primary);cursor:pointer;border:none;background:none;
+    font-family:inherit;padding:2px 4px;border-radius:4px;
+  }
+  .copy-link:hover{background:var(--primary-weak)}
+  .conn-bar .spacer{flex:1}
+  .conn-empty{font-size:12px;color:var(--text-mute)}
+  /* 工具栏 */
+  .toolbar{
+    flex:none;display:flex;align-items:center;gap:8px;padding:8px 14px;background:#fff;
+    border-bottom:1px solid var(--border);
+  }
+  .panel-title{font-size:12.5px;font-weight:700}
+  .panel-title .n{color:var(--text-mute);font-weight:400;font-family:var(--mono)}
+  .seg{display:inline-flex;border:1px solid var(--border-strong);border-radius:6px;overflow:hidden}
+  .seg button{
+    border:none;background:#fff;padding:0 10px;height:24px;font-size:11.5px;color:var(--text-sub);
+    cursor:pointer;font-family:inherit;border-right:1px solid var(--border);
+  }
+  .seg button:last-child{border-right:none}
+  .seg button.on{background:var(--primary-weak);color:var(--primary);font-weight:700}
+  .toolbar .spacer{flex:1}
+  .filter-inp{
+    height:24px;border:1px solid var(--border-strong);border-radius:5px;padding:0 8px;
+    font-size:11.5px;width:150px;outline:none;font-family:inherit;
+  }
+  .filter-inp:focus{border-color:var(--primary)}
+  /* 请求列表 */
+  .list-wrap{flex:1;overflow-y:auto;background:#fff;min-height:0}
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  thead th{
+    position:sticky;top:0;background:#f8fafd;color:var(--text-sub);font-weight:600;
+    text-align:left;padding:7px 10px;border-bottom:1px solid var(--border);font-size:11.5px;z-index:2;
+  }
+  tbody td{padding:6px 10px;border-bottom:1px solid #f2f4f9;vertical-align:middle}
+  tbody tr{cursor:pointer}
+  tbody tr:hover{background:#fafbfe}
+  tbody tr.sel{background:var(--primary-weak)}
+  tbody tr.sel td:first-child{box-shadow:inset 3px 0 0 var(--primary)}
+  .mono{font-family:var(--mono)}
+  .method{font-family:var(--mono);font-size:11px;font-weight:700;padding:1px 6px;border-radius:4px;display:inline-block}
+  .m-GET{color:#0ea5e9;background:rgba(14,165,233,.12)}
+  .m-POST{color:var(--success);background:var(--success-weak)}
+  .m-PUT{color:var(--warning);background:var(--warning-weak)}
+  .m-DELETE{color:var(--danger);background:var(--danger-weak)}
+  .m-PATCH{color:var(--purple);background:rgba(142,92,216,.12)}
+  .m-OTHER{color:var(--text-sub);background:var(--bg)}
+  .path{font-family:var(--mono);color:var(--text);max-width:290px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ip{font-family:var(--mono);color:var(--text-sub)}
+  .ctype{font-size:11px;color:var(--text-mute);font-family:var(--mono)}
+  .empty-row td{text-align:center;color:var(--text-mute);padding:38px 0;font-size:12.5px}
+  /* 详情 */
+  .detail{
+    flex:none;height:290px;background:#fff;border-top:1px solid var(--border);
+    display:flex;flex-direction:column;
+  }
+  .detail-head{
+    flex:none;display:flex;align-items:center;gap:9px;padding:8px 14px;border-bottom:1px solid var(--border);
+    flex-wrap:wrap;
+  }
+  .detail-head .desc{font-size:12px;color:var(--text-sub)}
+  .detail-tabs{display:flex;gap:2px;margin-left:8px}
+  .dtab{
+    border:none;background:none;font-size:12px;color:var(--text-sub);padding:4px 10px;
+    border-radius:5px;cursor:pointer;font-family:inherit;
+  }
+  .dtab.on{background:var(--primary-weak);color:var(--primary);font-weight:700}
+  .detail-body{flex:1;overflow:auto;padding:10px 14px}
+  .kv{display:grid;grid-template-columns:210px 1fr;gap:3px 12px;font-size:12px}
+  .kv .k{font-family:var(--mono);color:var(--text-sub);word-break:break-all}
+  .kv .v{font-family:var(--mono);color:var(--text);word-break:break-all}
+  pre.code{
+    font-family:var(--mono);font-size:12px;line-height:1.6;background:#f7f9fc;
+    border:1px solid var(--border);border-radius:7px;padding:10px 12px;overflow:auto;
+    color:#243046;white-space:pre-wrap;word-break:break-all;
+  }
+  .empty-detail{color:var(--text-mute);font-size:12.5px;text-align:center;padding:44px 0}
+  /* toast */
+  .toast{
+    position:fixed;left:50%;bottom:44px;transform:translateX(-50%) translateY(12px);
+    background:rgba(31,36,48,.92);color:#fff;font-size:12.5px;padding:8px 16px;border-radius:7px;
+    opacity:0;transition:.22s;pointer-events:none;z-index:99;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .tag-new{
+    display:inline-block;font-size:10px;color:var(--warning);border:1px dashed var(--warning);
+    border-radius:4px;padding:0 4px;margin-left:5px;vertical-align:1px;
+  }
+</style>
+</head>
+<body>
+
+<div class="review-tip">
+  <b>评审说明</b>：本页是 UI 原型，用于确认布局与交互，<b>不是正式界面</b>。点左侧「启动服务」可看到请求实时流入的效果；点表格任意一行看右侧/下方详情。
+</div>
+
+<div class="win">
+  <!-- 标题栏 -->
+  <div class="titlebar">
+    <div class="logo">调</div>
+    <div class="app-name">调试助手</div>
+    <div class="modes">
+      <div class="mode dim" title="现有功能">网络调试</div>
+      <div class="mode dim" title="现有功能">串口调试</div>
+      <div class="mode dim" title="现有功能">MQTT调试</div>
+      <div class="mode dim" title="现有功能">网络扫描</div>
+      <div class="mode on">HTTP Server<span class="tag-new">新增</span></div>
+    </div>
+    <div class="top-right">
+      <div class="status-tag" id="topStatus"><span class="dot"></span><span id="topStatusText">已停止</span></div>
+    </div>
+  </div>
+
+  <div class="body">
+    <!-- ============ 左栏 ============ -->
+    <aside class="left">
+      <div class="left-scroll">
+
+        <div class="sec" data-sec>
+          <div class="sec-head">服务设置<span class="arrow">▾</span></div>
+          <div class="sec-body">
+            <div class="fld">
+              <label class="lbl">监听端口</label>
+              <input class="inp" id="port" value="8080">
+            </div>
+            <div class="fld">
+              <label class="lbl">绑定地址</label>
+              <select id="bind">
+                <option value="0.0.0.0" selected>0.0.0.0（所有网卡，局域网可访问）</option>
+                <option value="127.0.0.1">127.0.0.1（仅本机）</option>
+              </select>
+              <div class="hint">客户端在其他机器上时要选 0.0.0.0，并在防火墙放行该端口。</div>
+            </div>
+            <div class="row2">
+              <button class="btn primary" id="btnStart">启动服务</button>
+              <button class="btn danger" id="btnStop" disabled>停止</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="sec" data-sec>
+          <div class="sec-head">响应配置<span class="arrow">▾</span></div>
+          <div class="sec-body">
+            <div class="row2">
+              <div class="fld">
+                <label class="lbl">状态码</label>
+                <input class="inp" id="respCode" value="200">
+              </div>
+              <div class="fld">
+                <label class="lbl">响应延迟(ms)</label>
+                <input class="inp" id="respDelay" value="0">
+              </div>
+            </div>
+            <div class="fld">
+              <label class="lbl">Content-Type</label>
+              <select id="respType">
+                <option selected>application/json</option>
+                <option>text/plain</option>
+                <option>text/html</option>
+                <option>application/xml</option>
+              </select>
+            </div>
+            <label class="chk"><input type="checkbox" id="echoOn" checked>回显收到的内容（推荐）</label>
+            <div class="fld" id="respBodyWrap" style="display:none">
+              <label class="lbl">响应体</label>
+              <textarea class="inp" id="respBody">{}</textarea>
+            </div>
+            <div class="hint">勾选「回显」时，服务会把客户端发来的内容原样返回，方便对方联调；取消后使用下方自定义响应体。</div>
+          </div>
+        </div>
+
+        <div class="sec closed" data-sec>
+          <div class="sec-head">统计<span class="arrow">▾</span></div>
+          <div class="sec-body">
+            <div class="stat-row"><span>请求总数</span><b id="stTotal">0</b></div>
+            <div class="stat-row"><span>接收数据量</span><b id="stBytes">0 B</b></div>
+            <div class="stat-row"><span>运行时长</span><b id="stUptime">—</b></div>
+            <button class="btn sm full" style="margin-top:7px" id="btnResetCount">计数清零</button>
+          </div>
+        </div>
+
+      </div>
+      <div class="count-strip">
+        <div class="half">
+          <div><div class="k">已接收</div><div class="v" id="stripCount">0 个请求</div></div>
+          <div><div class="k">数据量</div><div class="v" id="stripBytes">0 B</div></div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ============ 中栏 ============ -->
+    <main class="center">
+
+      <!-- 连接信息条：启动后告诉用户"客户端该发到哪" -->
+      <div class="conn-bar" id="connBar">
+        <span class="conn-empty" id="connEmpty">服务未启动 —— 点左侧「启动服务」后，这里会显示客户端应访问的地址</span>
+        <div id="connLive" style="display:none;width:100%;display:none"></div>
+      </div>
+
+      <!-- 工具栏 -->
+      <div class="toolbar">
+        <span class="panel-title">请求记录 <span class="n" id="listCount">(0)</span></span>
+        <div class="seg" id="filterSeg">
+          <button class="on" data-f="all">全部</button>
+          <button data-f="json">JSON</button>
+          <button data-f="form">表单</button>
+          <button data-f="bin">二进制</button>
+        </div>
+        <input class="filter-inp" id="kw" placeholder="筛选路径 / IP…">
+        <span class="spacer"></span>
+        <button class="btn sm" id="btnExport">导出</button>
+        <button class="btn sm" id="btnClear">清空</button>
+      </div>
+
+      <!-- 请求列表 -->
+      <div class="list-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:88px">时间</th>
+              <th style="width:66px">方法</th>
+              <th>路径</th>
+              <th style="width:132px">来源 IP</th>
+              <th style="width:64px">大小</th>
+              <th style="width:150px">Content-Type</th>
+            </tr>
+          </thead>
+          <tbody id="tbody">
+            <tr class="empty-row"><td colspan="6">服务启动后，客户端发来的请求会实时出现在这里</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 请求详情 -->
+      <div class="detail">
+        <div class="detail-head" id="detailHead">
+          <span class="panel-title" style="font-size:12.5px">请求详情</span>
+          <span class="desc" id="detailDesc"></span>
+          <div class="detail-tabs" id="detailTabs" style="display:none">
+            <button class="dtab on" data-t="body">Body</button>
+            <button class="dtab" data-t="headers">Headers</button>
+            <button class="dtab" data-t="query">Query</button>
+            <button class="dtab" data-t="raw">原始</button>
+          </div>
+          <span class="spacer" style="flex:1"></span>
+          <button class="btn sm" id="btnCopyBody" style="display:none">复制内容</button>
+        </div>
+        <div class="detail-body" id="detailBody">
+          <div class="empty-detail">在上方列表点选一条请求，这里显示它的完整内容</div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ================= 折叠分区 ================= */
+document.querySelectorAll('[data-sec] .sec-head').forEach(h=>{
+  h.addEventListener('click',()=>h.parentElement.classList.toggle('closed'));
+});
+
+/* ================= Toast ================= */
+let toastTimer=null;
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),1600);
+}
+function copy(text,label){
+  if(navigator.clipboard) navigator.clipboard.writeText(text).catch(()=>{});
+  toast((label||'已复制')+'：'+text);
+}
+
+/* ================= 响应配置联动 ================= */
+const echoOn=document.getElementById('echoOn');
+const respBodyWrap=document.getElementById('respBodyWrap');
+echoOn.addEventListener('change',()=>{
+  respBodyWrap.style.display=echoOn.checked?'none':'block';
+});
+respBodyWrap.style.display=echoOn.checked?'none':'block';
+
+/* ================= 服务启停 ================= */
+let running=false, timer=null, startTs=0, totalCount=0, totalBytes=0;
+let reqs=[], selId=null, curTab='body';
+const LAN_IP='192.168.4.61';
+
+function nowStr(){
+  const d=new Date(),p=n=>String(n).padStart(2,'0');
+  return p(d.getHours())+':'+p(d.getMinutes())+':'+p(d.getSeconds());
+}
+function fmtBytes(n){
+  if(n<1024) return n+' B';
+  if(n<1048576) return (n/1024).toFixed(1)+' KB';
+  return (n/1048576).toFixed(2)+' MB';
+}
+
+const btnStart=document.getElementById('btnStart');
+const btnStop=document.getElementById('btnStop');
+const portInp=document.getElementById('port');
+const bindSel=document.getElementById('bind');
+
+btnStart.addEventListener('click',startSvc);
+btnStop.addEventListener('click',stopSvc);
+
+function startSvc(){
+  const port=parseInt(portInp.value,10);
+  if(!port||port<1||port>65535){ toast('端口不合法（1~65535）'); return; }
+  if(port===20001){ toast('端口 20001 被本程序自身占用，请换一个'); return; }
+  running=true; startTs=Date.now();
+  btnStart.disabled=true; btnStop.disabled=false; portInp.disabled=true; bindSel.disabled=true;
+  document.getElementById('topStatus').classList.add('run');
+  document.getElementById('dot'); 
+  document.querySelector('#topStatus .dot').classList.add('on');
+  document.getElementById('topStatusText').textContent='运行中 · '+port;
+  renderConnBar(port);
+  toast('HTTP 服务已启动，监听 '+bindSel.value+':'+port);
+  timer=setInterval(feed,1800);
+  upTimer=setInterval(updUptime,1000);
+}
+let upTimer=null;
+function stopSvc(){
+  running=false;
+  clearInterval(timer); clearInterval(upTimer); timer=null;
+  btnStart.disabled=false; btnStop.disabled=true; portInp.disabled=false; bindSel.disabled=false;
+  document.getElementById('topStatus').classList.remove('run');
+  document.querySelector('#topStatus .dot').classList.remove('on');
+  document.getElementById('topStatusText').textContent='已停止';
+  renderConnBar(0);
+  document.getElementById('stUptime').textContent='—';
+  toast('HTTP 服务已停止');
+}
+
+/* 连接信息条 —— 告诉用户客户端该发到哪 */
+function renderConnBar(port){
+  const empty=document.getElementById('connEmpty');
+  const live=document.getElementById('connLive');
+  if(!port){
+    empty.style.display='block'; live.style.display='none';
+    empty.textContent='服务未启动 —— 点左侧「启动服务」后，这里会显示客户端应访问的地址';
+    return;
+  }
+  const bind=bindSel.value;
+  empty.style.display='none'; live.style.display='block';
+  const localUrl='http://127.0.0.1:'+port;
+  const lanUrl='http://'+LAN_IP+':'+port;
+  live.innerHTML=
+    '<div style="display:flex;align-items:center;gap:18px;flex-wrap:wrap">'+
+      '<div class="addr-group"><span class="k">本机访问</span>'+
+        '<span class="addr">'+localUrl+'</span>'+
+        '<button class="copy-link" data-copy="'+localUrl+'">复制</button></div>'+
+      (bind==='0.0.0.0'
+        ? '<div class="addr-group"><span class="k">局域网访问（给客户端用）</span>'+
+            '<span class="addr lan">'+lanUrl+'</span>'+
+            '<button class="copy-link" data-copy="'+lanUrl+'">复制</button></div>'
+        : '<div class="addr-group"><span class="k" style="color:var(--warning)">当前仅本机可访问，其他设备连不上</span></div>')+
+      '<div class="addr-group"><span class="k">接受</span><span class="mono" style="font-family:var(--mono);font-size:12px;color:var(--text-sub)">任意方法 / 任意路径</span></div>'+
+    '</div>';
+  live.querySelectorAll('[data-copy]').forEach(b=>{
+    b.addEventListener('click',()=>copy(b.dataset.copy,'地址'));
+  });
+}
+
+function updUptime(){
+  if(!running) return;
+  const s=Math.floor((Date.now()-startTs)/1000);
+  const m=String(Math.floor(s/60)).padStart(2,'0'), ss=String(s%60).padStart(2,'0');
+  document.getElementById('stUptime').textContent=m+':'+ss;
+}
+
+/* ================= 模拟客户端发来的请求 ================= */
+const samples=[
+  {m:'POST',p:'/api/device/report',ct:'application/json',body:'{\n  "device": "plc-01",\n  "berth": "A03",\n  "temp": 23.5,\n  "status": "running",\n  "ts": 1760497381\n}',kind:'json'},
+  {m:'GET', p:'/health?deep=1&timeout=500',ct:'—',body:'(无请求体)',kind:'empty'},
+  {m:'POST',p:'/webhook/order',ct:'application/x-www-form-urlencoded',body:'order_no=SO20261015001\nberth=B07\nweight=1280\noperator=%E5%A4%A7%E5%B8%85',kind:'form'},
+  {m:'PUT', p:'/api/config/update',ct:'application/json',body:'{\n  "interval": 5000,\n  "threshold": 0.7\n}',kind:'json'},
+  {m:'POST',p:'/device/raw',ct:'application/octet-stream',body:'01 03 04 00 1A 00 2B 8C 4E',kind:'bin'},
+  {m:'POST',p:'/api/alarm',ct:'application/json',body:'{\n  "level": "warn",\n  "code": "E1042",\n  "msg": "3号泊位风速超限"\n}',kind:'json'},
+  {m:'DELETE',p:'/api/session/8821',ct:'—',body:'(无请求体)',kind:'empty'},
+  {m:'POST',p:'/webhook/sensor',ct:'application/json',body:'{\n  "sensor": "wave-h03",\n  "height": 1.24\n}',kind:'json'}
+];
+const ips=['192.168.1.50','192.168.1.51','192.168.4.31','192.168.1.77','10.20.3.8'];
+let feedIdx=0;
+
+function feed(){
+  if(!running) return;
+  /* 首条延迟一点，避免一启动就刷屏 */
+  feedIdx++;
+  if(feedIdx===1){ setTimeout(feed,900); return; }
+  const s=samples[Math.floor(Math.random()*samples.length)];
+  const size=s.kind==='empty'?0:new Blob([s.body]).size;
+  const item={
+    id:'r'+(Date.now())+Math.floor(Math.random()*999),
+    time:nowStr(), m:s.m, p:s.p, ip:ips[Math.floor(Math.random()*ips.length)],
+    size, ct:s.ct, body:s.body, kind:s.kind,
+    headers:{
+      'Host': LAN_IP+':'+portInp.value,
+      'User-Agent': s.kind==='bin'?'DeviceAgent/2.1':'python-requests/2.32.3',
+      'Content-Type': s.ct==='—'?'(无)':s.ct,
+      'Content-Length': String(size),
+      'Accept': '*/*',
+      'X-Device-Id': 'DEV-'+Math.floor(Math.random()*9000+1000),
+      'Connection': 'keep-alive'
+    },
+    query: parseQuery(s.p)
+  };
+  reqs.unshift(item);
+  totalCount++; totalBytes+=size;
+  renderList(); renderStats();
+  /* 无选中时自动选中最新一条，便于"看到数据" */
+  if(selId===null){ select(item.id); }
+}
+
+function parseQuery(path){
+  const i=path.indexOf('?');
+  if(i<0) return [];
+  return path.slice(i+1).split('&').filter(Boolean).map(kv=>{
+    const [k,v]=kv.split('=');
+    return {k:k,v:decodeURIComponent(v||'')};
+  });
+}
+
+/* ================= 渲染 ================= */
+let filterKind='all';
+document.querySelectorAll('#filterSeg button').forEach(b=>{
+  b.addEventListener('click',()=>{
+    document.querySelectorAll('#filterSeg button').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on'); filterKind=b.dataset.f; renderList();
+  });
+});
+document.getElementById('kw').addEventListener('input',renderList);
+
+function visibleReqs(){
+  const kw=document.getElementById('kw').value.trim().toLowerCase();
+  return reqs.filter(r=>{
+    if(filterKind!=='all'){
+      if(filterKind==='json' && r.kind!=='json') return false;
+      if(filterKind==='form' && r.kind!=='form') return false;
+      if(filterKind==='bin'  && r.kind!=='bin')  return false;
+    }
+    if(kw && !(r.p.toLowerCase().includes(kw)||r.ip.includes(kw))) return false;
+    return true;
+  });
+}
+
+function renderList(){
+  const tb=document.getElementById('tbody');
+  const list=visibleReqs();
+  document.getElementById('listCount').textContent='('+list.length+')';
+  if(!list.length){
+    tb.innerHTML='<tr class="empty-row"><td colspan="6">'+
+      (reqs.length?'没有符合筛选条件的请求':'服务启动后，客户端发来的请求会实时出现在这里')+'</td></tr>';
+    return;
+  }
+  const mc={'GET':'m-GET','POST':'m-POST','PUT':'m-PUT','DELETE':'m-DELETE','PATCH':'m-PATCH'};
+  tb.innerHTML=list.map(r=>{
+    const short=r.p.length>46?r.p.slice(0,46)+'…':r.p;
+    return '<tr data-id="'+r.id+'" class="'+(r.id===selId?'sel':'')+'">'+
+      '<td class="mono">'+r.time+'</td>'+
+      '<td><span class="method '+(mc[r.m]||'m-OTHER')+'">'+r.m+'</span></td>'+
+      '<td class="path" title="'+r.p+'">'+short+'</td>'+
+      '<td class="ip">'+r.ip+'</td>'+
+      '<td class="mono">'+fmtBytes(r.size)+'</td>'+
+      '<td class="ctype">'+r.ct+'</td>'+
+    '</tr>';
+  }).join('');
+  tb.querySelectorAll('tr[data-id]').forEach(tr=>{
+    tr.addEventListener('click',()=>select(tr.dataset.id));
+  });
+}
+
+function renderStats(){
+  document.getElementById('stTotal').textContent=totalCount;
+  document.getElementById('stBytes').textContent=fmtBytes(totalBytes);
+  document.getElementById('stripCount').textContent=totalCount+' 个请求';
+  document.getElementById('stripBytes').textContent=fmtBytes(totalBytes);
+}
+
+/* ================= 详情 ================= */
+document.querySelectorAll('#detailTabs .dtab').forEach(b=>{
+  b.addEventListener('click',()=>{
+    document.querySelectorAll('#detailTabs .dtab').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on'); curTab=b.dataset.t; renderDetail();
+  });
+});
+
+function select(id){
+  selId=id; renderList(); renderDetail();
+}
+
+function curReq(){ return reqs.find(r=>r.id===selId)||null; }
+
+function renderDetail(){
+  const r=curReq();
+  const head=document.getElementById('detailHead');
+  const bodyEl=document.getElementById('detailBody');
+  const tabs=document.getElementById('detailTabs');
+  const desc=document.getElementById('detailDesc');
+  const copyBtn=document.getElementById('btnCopyBody');
+  if(!r){
+    tabs.style.display='none'; copyBtn.style.display='none'; desc.textContent='';
+    bodyEl.innerHTML='<div class="empty-detail">在上方列表点选一条请求，这里显示它的完整内容</div>';
+    return;
+  }
+  tabs.style.display='flex'; copyBtn.style.display='inline-flex';
+  desc.innerHTML='<span class="method '+({'GET':'m-GET','POST':'m-POST','PUT':'m-PUT','DELETE':'m-DELETE'}[r.m]||'m-OTHER')+'">'+r.m+'</span> '+
+    '<span class="mono" style="font-family:var(--mono)">'+r.p+'</span>'+
+    ' &nbsp;来自 <span class="mono" style="font-family:var(--mono)">'+r.ip+'</span>'+
+    ' &nbsp;'+r.time+' &nbsp;'+fmtBytes(r.size);
+  copyBtn.onclick=()=>copy(r.body,'内容');
+
+  if(curTab==='body'){
+    if(r.kind==='empty'){ bodyEl.innerHTML='<div class="empty-detail">该请求没有请求体</div>'; return; }
+    if(r.kind==='bin'){
+      bodyEl.innerHTML='<div style="font-size:11.5px;color:var(--text-mute);margin-bottom:7px">二进制内容（按 HEX 显示）</div><pre class="code">'+r.body+'</pre>';
+      return;
+    }
+    bodyEl.innerHTML='<pre class="code">'+escapeHtml(r.body)+'</pre>';
+  }else if(curTab==='headers'){
+    const rows=Object.entries(r.headers).map(([k,v])=>'<div class="k">'+k+'</div><div class="v">'+escapeHtml(v)+'</div>').join('');
+    bodyEl.innerHTML='<div class="kv">'+rows+'</div>';
+  }else if(curTab==='query'){
+    if(!r.query.length){ bodyEl.innerHTML='<div class="empty-detail">无 Query 参数</div>'; return; }
+    bodyEl.innerHTML='<div class="kv">'+r.query.map(q=>'<div class="k">'+q.k+'</div><div class="v">'+escapeHtml(q.v)+'</div>').join('')+'</div>';
+  }else{
+    bodyEl.innerHTML='<pre class="code">'+escapeHtml(r.m+' '+r.p+' HTTP/1.1\n'+Object.entries(r.headers).map(([k,v])=>k+': '+v).join('\n')+'\n\n'+r.body)+'</pre>';
+  }
+}
+function escapeHtml(s){return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+
+/* ================= 工具按钮 ================= */
+document.getElementById('btnClear').addEventListener('click',()=>{
+  reqs=[]; selId=null; renderList(); renderDetail(); toast('请求记录已清空');
+});
+document.getElementById('btnExport').addEventListener('click',()=>{
+  toast('导出：将弹出目录选择框，默认文件名 http_log_年月日_时分秒.txt');
+});
+document.getElementById('btnResetCount').addEventListener('click',()=>{
+  totalCount=0; totalBytes=0; renderStats(); toast('计数已清零');
+});
+
+/* 初始 */
+renderStats();
+</script>
+</body>
+</html>

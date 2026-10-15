@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280">
+<title>调试助手 · 网络扫描模块 UI 预览</title>
+<style>
+  :root {
+    --primary: #2f6fed;
+    --primary-dark: #2560d8;
+    --primary-light: #eaf1fd;
+    --success: #18a058;
+    --warning: #f59e0b;
+    --warning-dark: #d98a06;
+    --danger: #e54545;
+    --danger-dark: #cf3535;
+    --bg: #f2f5fa;
+    --panel: #ffffff;
+    --border: #e2e6ed;
+    --border-strong: #d3d9e3;
+    --text: #2c313a;
+    --text-sub: #7a8291;
+    --text-mute: #a8afbb;
+    --shadow: 0 1px 3px rgba(20, 35, 70, .06), 0 4px 14px rgba(20, 35, 70, .05);
+    --btn-h: 28px; --btn-h-sm: 24px; --btn-r: 6px; --btn-r-sm: 5px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0; background: #dfe4ec;
+    font-family: "Microsoft YaHei", "PingFang SC", -apple-system, "Segoe UI", sans-serif;
+    font-size: 13px; color: var(--text);
+  }
+
+  /* ===== 统一按钮体系（与其余三模式完全一致） ===== */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+    height: var(--btn-h); padding: 0 13px;
+    border: 1px solid var(--border-strong); border-radius: var(--btn-r);
+    background: #fff; color: #4a5260;
+    font-family: inherit; font-size: 12px; font-weight: 500; line-height: 1;
+    cursor: pointer; white-space: nowrap; user-select: none;
+    transition: background .15s, border-color .15s, color .15s;
+  }
+  .btn:hover { border-color: var(--primary); color: var(--primary); background: #f7faff; }
+  .btn:active { background: #eef4ff; }
+  .btn.sm { height: var(--btn-h-sm); padding: 0 10px; font-size: 11.5px; border-radius: var(--btn-r-sm); }
+  .btn.block { width: 100%; }
+  .btn.primary { background: var(--primary); border-color: var(--primary); color: #fff; font-weight: 600; }
+  .btn.primary:hover { background: var(--primary-dark); border-color: var(--primary-dark); color: #fff; }
+  .btn.danger { background: var(--danger); border-color: var(--danger); color: #fff; font-weight: 600; }
+  .btn.danger:hover { background: var(--danger-dark); border-color: var(--danger-dark); color: #fff; }
+  .btn.warn { background: #fff; border-color: var(--warning); color: var(--warning-dark); font-weight: 600; }
+  .btn.warn:hover { background: var(--warning); border-color: var(--warning); color: #fff; }
+  .btn.ghost { background: transparent; border-color: transparent; color: var(--text-sub); }
+  .btn.ghost:hover { background: var(--primary-light); color: var(--primary); }
+  .btn[disabled] { opacity: .45; cursor: not-allowed; pointer-events: none; }
+  .btn-group { display: inline-flex; align-items: center; gap: 5px; }
+  .btn-text-link { border: none; background: none; padding: 0; cursor: pointer; font-family: inherit; font-size: 11.5px; color: var(--primary); }
+  .btn-text-link:hover { text-decoration: underline; }
+  .btn-text-link.danger { color: var(--danger); }
+
+  input[type=text], input[type=number], select {
+    height: var(--btn-h); padding: 0 8px;
+    border: 1px solid var(--border-strong); border-radius: var(--btn-r);
+    font-family: inherit; font-size: 12px; color: var(--text); background: #fff;
+    outline: none; transition: border-color .15s;
+  }
+  input:focus, select:focus { border-color: var(--primary); }
+  input:disabled, select:disabled { background: #f6f7f9; color: var(--text-mute); cursor: not-allowed; }
+  select {
+    appearance: none; padding-right: 22px; cursor: pointer;
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath fill='%238a93a3' d='M5 7L1.5 3h7z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 7px center;
+  }
+  input.sm, select.sm { height: var(--btn-h-sm); font-size: 11.5px; border-radius: var(--btn-r-sm); }
+  .chk { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; cursor: pointer; }
+  .chk input { accent-color: var(--primary); cursor: pointer; margin: 0; }
+
+  /* ===== 说明条 ===== */
+  .preview-bar {
+    background: #2c313a; color: #d7dce5; padding: 8px 16px;
+    display: flex; align-items: center; gap: 16px; font-size: 12px;
+  }
+  .preview-bar b { color: #fff; font-weight: 600; }
+  .preview-bar .spacer { flex: 1; }
+  .preview-bar label { display: inline-flex; align-items: center; gap: 5px; cursor: pointer; color: #ffd88a; }
+
+  /* ===== 窗口 ===== */
+  .window {
+    width: 1240px; height: 800px; margin: 14px auto 24px; background: var(--bg);
+    border-radius: 10px; box-shadow: 0 8px 30px rgba(15,25,50,.18);
+    overflow: hidden; display: flex; flex-direction: column;
+  }
+  .title-bar {
+    height: 44px; flex: none; background: var(--panel); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between; padding: 0 12px;
+  }
+  .title-left { display: flex; align-items: center; gap: 12px; }
+  .app-title { font-size: 15px; font-weight: 700; letter-spacing: .5px; }
+  .mode-switch { display: flex; border: 1px solid var(--border-strong); border-radius: var(--btn-r); overflow: hidden; }
+  .mode-switch button {
+    height: 26px; padding: 0 13px; border: none; background: #fff; color: var(--text-sub);
+    font-family: inherit; font-size: 12px; cursor: pointer; border-right: 1px solid var(--border-strong);
+    transition: all .15s;
+  }
+  .mode-switch button:last-child { border-right: none; }
+  .mode-switch button:hover { color: var(--primary); background: #f7faff; }
+  .mode-switch button.active { background: var(--primary); color: #fff; font-weight: 600; }
+  .title-right { display: flex; align-items: center; gap: 8px; }
+  .tag-status { display: inline-flex; align-items: center; height: 22px; padding: 0 10px; border-radius: 11px; font-size: 11px; font-weight: 600; color: #fff; background: var(--success); }
+  .tag-status.idle { background: #b6bdc9; }
+
+  .main-body { flex: 1; display: flex; min-height: 0; }
+
+  /* ===== 左栏 ===== */
+  .left-panel { width: 258px; flex: none; background: var(--panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; }
+  .panel-head { padding: 10px 12px; border-bottom: 1px solid var(--border); display: flex; align-items: center; }
+  .panel-title { font-size: 13px; font-weight: 600; padding-left: 8px; position: relative; }
+  .panel-title::before { content: ''; position: absolute; left: 0; top: 2px; bottom: 2px; width: 3px; border-radius: 2px; background: var(--primary); }
+  .panel-scroll { flex: 1; overflow-y: auto; padding: 4px 0; }
+  .sec { border-bottom: 1px solid var(--border); }
+  .sec-head { padding: 9px 12px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-size: 12.5px; font-weight: 600; }
+  .sec-head:hover { background: #f8fafc; }
+  .sec-head .arrow { color: var(--text-mute); font-size: 10px; transition: transform .15s; }
+  .sec.open .sec-head { color: var(--primary); }
+  .sec.open .sec-head .arrow { transform: rotate(90deg); }
+  .sec-body { display: none; padding: 2px 12px 10px; }
+  .sec.open .sec-body { display: block; }
+  .form-row { display: flex; align-items: center; margin-bottom: 7px; gap: 8px; }
+  .form-row > label { width: 62px; flex: none; font-size: 12px; color: var(--text-sub); text-align: right; }
+  .form-row .ctl { flex: 1; min-width: 0; }
+  .row-inline { display: flex; gap: 6px; align-items: center; }
+  .hint { font-size: 11px; color: var(--text-mute); margin-top: 7px; line-height: 1.5; }
+  .panel-foot { flex: none; padding: 8px 12px; border-top: 1px solid var(--border); display: flex; gap: 6px; }
+
+  /* ===== 中栏 ===== */
+  .center-panel { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+
+  .scan-toolbar {
+    flex: none; background: #fff; border-bottom: 1px solid var(--border);
+    padding: 8px 14px; display: flex; flex-direction: column; gap: 8px;
+  }
+  .scan-status { display: flex; align-items: center; gap: 14px; font-size: 12px; color: var(--text-sub); }
+  .scan-status b { color: var(--text); }
+  .progress-wrap { flex: 1; display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .progress-track { flex: 1; height: 6px; border-radius: 3px; background: #eef1f6; overflow: hidden; }
+  .progress-fill { height: 100%; width: 0%; background: var(--primary); border-radius: 3px; transition: width .12s linear; }
+  .progress-text { font-size: 11.5px; color: var(--text-mute); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  .result-tools { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .result-tools .spacer { flex: 1; }
+  .seg { display: inline-flex; border: 1px solid var(--border-strong); border-radius: var(--btn-r); overflow: hidden; }
+  .seg button { height: 24px; padding: 0 11px; border: none; background: #fff; color: var(--text-sub); font-family: inherit; font-size: 11.5px; cursor: pointer; border-right: 1px solid var(--border-strong); }
+  .seg button:last-child { border-right: none; }
+  .seg button:hover { color: var(--primary); }
+  .seg button.active { background: var(--primary); color: #fff; font-weight: 600; }
+
+  .table-wrap { flex: 1; overflow: auto; background: #fff; }
+  table.result { width: 100%; border-collapse: collapse; font-size: 12px; }
+  table.result thead th {
+    position: sticky; top: 0; z-index: 2;
+    background: #f7f9fc; color: var(--text-sub); font-weight: 600; font-size: 11.5px;
+    text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--border); white-space: nowrap;
+  }
+  table.result tbody td { padding: 6px 10px; border-bottom: 1px solid #f0f2f6; white-space: nowrap; }
+  table.result tbody tr:hover td { background: #fafbfd; }
+  table.result tbody tr.selected td { background: var(--primary-light); }
+  table.result tbody tr.offline td { color: var(--text-mute); }
+  .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+  .dot.on { background: var(--success); }
+  .dot.off { background: #cbd2dc; }
+  .mono { font-family: Consolas, "Courier New", monospace; }
+  .ip-cell { font-weight: 600; color: var(--text); }
+  .tag-port { display: inline-block; padding: 1px 6px; border-radius: 4px; background: #eef5ff; color: #1f5fd1; font-size: 11px; margin-right: 4px; }
+  .vendor-cell { color: var(--text-sub); }
+  .note-cell { color: var(--warning-dark); }
+  .empty-row td { text-align: center; color: var(--text-mute); padding: 40px 0 !important; font-size: 12.5px; }
+
+  /* 收藏星标 */
+  .star { cursor: pointer; color: #d5dae2; font-size: 14px; user-select: none; line-height: 1; }
+  .star:hover { color: #f5c26b; }
+  .star.on { color: #f5a623; }
+  /* 变化告警标记 */
+  .warn-badge {
+    display: inline-block; margin-left: 5px; font-size: 11px; cursor: help;
+    color: var(--warning-dark); background: #fdf3e0; border-radius: 3px; padding: 0 4px;
+  }
+  tr.changed { box-shadow: inset 3px 0 0 var(--warning); }
+
+  /* 扫描历史 */
+  .hist-item {
+    display: flex; align-items: center; gap: 6px; padding: 6px 8px;
+    border: 1px solid var(--border); border-radius: 6px; margin-bottom: 6px;
+    cursor: pointer; font-size: 11.5px; transition: all .15s;
+  }
+  .hist-item:hover { border-color: var(--primary); background: #fafbff; }
+  .hist-item.active { border-color: var(--primary); background: var(--primary-light); }
+  .hist-time { color: var(--text); font-weight: 600; }
+  .hist-meta { color: var(--text-mute); font-size: 10.5px; }
+  .hist-delta { margin-left: auto; font-size: 10.5px; font-weight: 600; color: var(--text-mute); }
+  .hist-delta.new { color: var(--success); }
+  .hist-delta.warn { color: var(--warning-dark); }
+
+  .result-footer {
+    flex: none; background: #fff; border-top: 1px solid var(--border);
+    padding: 8px 14px; display: flex; align-items: center; gap: 8px;
+  }
+  .result-footer .spacer { flex: 1; }
+  .result-footer .tip { font-size: 11.5px; color: var(--text-mute); }
+
+  body.show-marks .mark-new { position: relative; outline: 2px dashed var(--warning); outline-offset: 2px; }
+  body.show-marks .mark-new::after {
+    content: '新增'; position: absolute; top: -9px; left: -2px;
+    background: var(--warning); color: #fff; font-size: 10px; line-height: 1;
+    padding: 2px 5px; border-radius: 3px; font-weight: 600; z-index: 5;
+  }
+</style>
+</head>
+<body class="show-marks">
+
+<div class="preview-bar">
+  <b>网络扫描模块 · UI 预览原型</b>
+  <span>静态原型，仅用于评审布局与交互；功能代码尚未实现</span>
+  <span class="spacer"></span>
+  <label><input type="checkbox" id="markToggle" checked> 显示「新增」标注</label>
+</div>
+
+<div class="window">
+  <header class="title-bar">
+    <div class="title-left">
+      <span class="app-title">调试助手</span>
+      <div class="mode-switch">
+        <button>网络调试</button>
+        <button>串口调试</button>
+        <button>MQTT调试</button>
+        <button class="active mark-new">网络扫描</button>
+      </div>
+    </div>
+    <div class="title-right">
+      <span class="tag-status idle" id="scanTag">空闲</span>
+      <button class="btn ghost sm">隐藏参数</button>
+    </div>
+  </header>
+
+  <div class="main-body">
+    <!-- ===== 左栏：扫描设置 ===== -->
+    <aside class="left-panel">
+      <div class="panel-head"><span class="panel-title">扫描设置</span></div>
+      <div class="panel-scroll">
+
+        <div class="sec open" data-sec>
+          <div class="sec-head"><span>扫描范围</span><span class="arrow">&#9654;</span></div>
+          <div class="sec-body">
+            <div class="form-row"><label>网段</label><div class="ctl">
+              <select id="netSeg">
+                <option>192.168.1.0/24 · 有线</option>
+                <option>192.168.3.0/24 · 无线</option>
+                <option>自定义范围</option>
+              </select>
+            </div></div>
+            <div class="form-row"><label>起始 IP</label><div class="ctl"><input type="text" id="ipStart" value="192.168.1.1"></div></div>
+            <div class="form-row"><label>结束 IP</label><div class="ctl"><input type="text" id="ipEnd" value="192.168.1.254"></div></div>
+            <div class="hint">共 <b id="hostCount">254</b> 个地址待扫描。支持 `192.168.1.1-254` 或 CIDR 写法</div>
+            <div class="row-inline" style="margin-top:8px">
+              <button class="btn sm" id="btnFillNet">用本机网段</button>
+              <button class="btn sm" id="btnScan255">整个 C 类</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="sec open" data-sec>
+          <div class="sec-head"><span>探测方式</span><span class="arrow">&#9654;</span></div>
+          <div class="sec-body">
+            <div class="form-row"><label>方式</label><div class="ctl">
+              <select id="probeMode">
+                <option>ARP + TCP（推荐）</option>
+                <option>ICMP Ping</option>
+                <option>仅 ARP 表</option>
+                <option>TCP 端口探测</option>
+              </select>
+            </div></div>
+            <div class="form-row"><label>并发</label><div class="ctl"><input type="number" id="concurrency" value="128" min="8" max="512"></div></div>
+            <div class="form-row"><label>超时</label><div class="ctl"><div class="row-inline"><input type="number" id="timeout" value="500"><span class="hint" style="margin:0">ms</span></div></div></div>
+            <div class="hint">ARP + TCP 无需管理员权限，速度最快；ICMP 需要管理员权限</div>
+          </div>
+        </div>
+
+        <div class="sec open" data-sec>
+          <div class="sec-head"><span>信息获取</span><span class="arrow">&#9654;</span></div>
+          <div class="sec-body">
+            <div style="display:flex;flex-direction:column;gap:7px">
+              <label class="chk"><input type="checkbox" checked> MAC 地址（ARP 表）</label>
+              <label class="chk"><input type="checkbox" checked> 厂商（MAC 前缀库）</label>
+              <label class="chk"><input type="checkbox" checked> 主机名（反向解析）</label>
+              <label class="chk"><input type="checkbox" id="chkPortScan"> 开放端口探测</label>
+            </div>
+            <div class="form-row" style="margin-top:8px"><label>端口</label><div class="ctl">
+              <select id="portPreset">
+                <option>常用（22,80,443,445,3389）</option>
+                <option>Web（80,443,8080,8000）</option>
+                <option>远程（22,3389,5900）</option>
+                <option>数据库（3306,5432,1433,6379）</option>
+                <option>工控（502,102,44818,47808）</option>
+              </select>
+            </div></div>
+            <div class="hint">端口探测会显著增加扫描耗时</div>
+          </div>
+        </div>
+
+        <div class="sec open mark-new" data-sec>
+          <div class="sec-head"><span>扫描历史</span><span class="arrow">&#9654;</span></div>
+          <div class="sec-body">
+            <div id="histList"></div>
+            <div class="hint">保留最近 10 次扫描；对比上次结果可发现新增设备、IP-MAC 映射变化（疑似 IP 冲突）</div>
+          </div>
+        </div>
+
+      </div>
+      <div class="panel-foot">
+        <button class="btn primary" style="flex:1" id="btnStart">开始扫描</button>
+        <button class="btn danger" style="flex:1" id="btnStop" disabled>停止</button>
+      </div>
+    </aside>
+
+    <!-- ===== 中栏：扫描结果 ===== -->
+    <main class="center-panel">
+      <div class="scan-toolbar mark-new">
+        <div class="scan-status">
+          <div class="progress-wrap">
+            <span>进度</span>
+            <div class="progress-track"><div class="progress-fill" id="progFill"></div></div>
+            <span class="progress-text" id="progText">0 / 254</span>
+          </div>
+          <span>在线 <b id="statOnline">0</b> 台</span>
+          <span>用时 <b id="statTime">0.0</b> s</span>
+        </div>
+        <div class="result-tools">
+          <div class="seg" id="filterSeg">
+            <button class="active" data-f="all">全部</button>
+            <button data-f="online">仅在线</button>
+          </div>
+          <input type="text" class="sm" id="kwFilter" placeholder="按 IP / MAC / 厂商 / 主机名筛选" style="width:220px">
+          <span class="spacer"></span>
+          <button class="btn sm" id="btnExport">导出 CSV</button>
+          <button class="btn sm" id="btnClear">清空结果</button>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table class="result">
+          <thead>
+            <tr>
+              <th style="width:34px" title="收藏（置顶）">★</th>
+              <th style="width:70px">状态</th>
+              <th style="width:112px">IP 地址</th>
+              <th style="width:132px">MAC 地址</th>
+              <th style="width:100px">厂商</th>
+              <th style="width:116px">主机名</th>
+              <th style="width:64px">延迟</th>
+              <th>开放端口</th>
+              <th style="width:100px">备注</th>
+            </tr>
+          </thead>
+          <tbody id="resultBody">
+            <tr class="empty-row"><td colspan="9">点击左侧「开始扫描」后，结果将实时显示在这里</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="result-footer mark-new">
+        <span class="tip" id="selTip">未选中设备</span>
+        <span class="spacer"></span>
+        <button class="btn sm" id="btnCopyIp">复制 IP</button>
+        <button class="btn sm" id="btnCopyMac">复制 MAC</button>
+        <button class="btn sm" id="btnNote">添加备注</button>
+        <button class="btn sm" id="btnFav">收藏</button>
+        <button class="btn primary sm" id="btnUseIp">用该 IP 建立 TCP 连接</button>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script>
+  var markToggle = document.getElementById('markToggle');
+  markToggle.addEventListener('change', function (e) {
+    document.body.classList.toggle('show-marks', e.target.checked);
+  });
+  document.querySelectorAll('[data-sec]').forEach(function (sec) {
+    sec.querySelector('.sec-head').addEventListener('click', function () { sec.classList.toggle('open'); });
+  });
+
+  /* 全量样本数据（模拟现场局域网） */
+  var SAMPLE = [
+    ['192.168.1.1',   'A4:2B:B0:11:22:33', 'TP-Link',  'router.lan',      '2 ms',  ['80','443']],
+    ['192.168.1.4',   '00:1B:21:AA:BB:01', 'Intel',    'pc-debug-01',     '1 ms',  ['445','3389']],
+    ['192.168.1.7',   '3C:5A:B4:CC:DD:02', '华为',      'plc-a03',         '3 ms',  ['502']],
+    ['192.168.1.9',   '3C:5A:B4:CC:DD:03', '华为',      'plc-b01',         '3 ms',  ['502']],
+    ['192.168.1.12',  'E0:50:8B:11:22:04', '大华',      'ipc-gate-01',     '5 ms',  ['80','554']],
+    ['192.168.1.13',  'E0:50:8B:11:22:05', '大华',      'ipc-gate-02',     '6 ms',  ['80','554']],
+    ['192.168.1.20',  '44:19:B6:33:44:06', '海康威视',   'nvr-main',        '4 ms',  ['80','8000']],
+    ['192.168.1.31',  'B8:27:EB:55:66:07', 'Raspberry', 'gw-edge-01',      '7 ms',  ['22']],
+    ['192.168.1.42',  'F4:8E:38:77:88:08', 'Dell',     'win-ops',         '2 ms',  ['445','3389']],
+    ['192.168.1.57',  '34:97:F6:99:AA:09', '华硕',      'ap-floor2',       '3 ms',  ['80']],
+    ['192.168.1.88',  '8C:85:90:BB:CC:0A', 'Apple',    'macbook-cs',      '9 ms',  []],
+    ['192.168.1.101', '5C:02:14:DD:EE:0B', '小米',      'printer-3f',      '12 ms', ['80','631']],
+    ['192.168.1.120', 'AC:84:C6:12:34:0C', 'TP-Link',  'switch-rack',     '2 ms',  ['80']],
+    ['192.168.1.200', '00:0C:29:56:78:0D', 'VMware',   'vm-test',         '1 ms',  ['22','80']]
+  ];
+  var notes = {};
+  /* 收藏（置顶显示）——演示：plc-a03 已收藏 */
+  var favs = { '192.168.1.7': true };
+  /* 与上次扫描的差异标记 —— 演示：vm-test 的 MAC 变了，疑似 IP 冲突 */
+  var changeMark = {
+    '192.168.1.200': '与上次扫描相比 MAC 由 00:0C:29:AA:BB:CC 变为 00:0C:29:56:78:0D，可能存在 IP 冲突'
+  };
+  var rowsData = [];
+  var timer = null, scrolledIdx = 0;
+  var TOTAL = 254;
+
+  /* 扫描历史：保留最近 10 次，可对比发现新增设备 / IP-MAC 变化 */
+  var SCAN_HISTORY = [
+    { time: '10-14 13:20', seg: '192.168.1.0/24', online: 13, delta: '新增 1', cls: 'new' },
+    { time: '10-13 18:05', seg: '192.168.1.0/24', online: 12, delta: '1 项变化', cls: 'warn' },
+    { time: '10-12 09:31', seg: '192.168.3.0/24', online: 8, delta: '—', cls: '' }
+  ];
+
+  function renderHistory() {
+    var box = document.getElementById('histList');
+    box.innerHTML = '';
+    SCAN_HISTORY.forEach(function (h, i) {
+      var d = document.createElement('div');
+      d.className = 'hist-item' + (i === 0 ? ' active' : '');
+      d.innerHTML =
+        '<div><div class="hist-time">' + h.time + '</div>' +
+        '<div class="hist-meta">' + h.seg + ' · 在线 ' + h.online + '</div></div>' +
+        '<span class="hist-delta ' + h.cls + '">' + h.delta + '</span>';
+      d.addEventListener('click', function () {
+        document.querySelectorAll('.hist-item').forEach(function (x) { x.classList.remove('active'); });
+        d.classList.add('active');
+      });
+      box.appendChild(d);
+    });
+  }
+
+  function pct(n) { return Math.round(n / TOTAL * 100); }
+
+  function buildRow(item) {
+    var ip = item[0], mac = item[1], vendor = item[2], host = item[3], delay = item[4], ports = item[5];
+    var tr = document.createElement('tr');
+    tr.dataset.ip = ip;
+    tr.dataset.mac = mac;
+    var portsHtml = ports.length
+      ? ports.map(function (p) { return '<span class="tag-port">' + p + '</span>'; }).join('')
+      : '<span style="color:var(--text-mute)">—</span>';
+    var chg = changeMark[ip];
+    if (chg) tr.classList.add('changed');
+    tr.innerHTML =
+      '<td><span class="star' + (favs[ip] ? ' on' : '') + '" title="收藏（置顶显示）">★</span></td>' +
+      '<td><span class="dot on"></span>在线' + (chg ? '<span class="warn-badge" title="' + chg + '">变化</span>' : '') + '</td>' +
+      '<td class="mono ip-cell">' + ip + '</td>' +
+      '<td class="mono">' + mac + '</td>' +
+      '<td class="vendor-cell">' + vendor + '</td>' +
+      '<td class="vendor-cell">' + host + '</td>' +
+      '<td class="mono">' + delay + '</td>' +
+      '<td>' + portsHtml + '</td>' +
+      '<td class="note-cell">' + (notes[ip] || '') + '</td>';
+    tr.querySelector('.star').addEventListener('click', function (e) {
+      e.stopPropagation();
+      favs[ip] = !favs[ip];
+      this.classList.toggle('on', favs[ip]);
+      sortAndRender();
+    });
+    tr.addEventListener('click', function () { selectRow(tr); });
+    tr.addEventListener('dblclick', function () {
+      selectRow(tr);
+      document.getElementById('selTip').innerHTML =
+        '已选中 <b>' + ip + '</b> —— 点击右下角「用该 IP 建立 TCP 连接」可跳转到网络调试';
+    });
+    return tr;
+  }
+
+  /* 收藏置顶排序 */
+  function sortAndRender() {
+    var body = document.getElementById('resultBody');
+    var rows = Array.prototype.slice.call(body.querySelectorAll('tr[data-ip]'));
+    rows.sort(function (a, b) {
+      var fa = favs[a.dataset.ip] ? 0 : 1, fb = favs[b.dataset.ip] ? 0 : 1;
+      if (fa !== fb) return fa - fb;
+      function num(ip) { var p = ip.split('.'); return (+p[0]) * 16777216 + (+p[1]) * 65536 + (+p[2]) * 256 + (+p[3]); }
+      return num(a.dataset.ip) - num(b.dataset.ip);
+    });
+    rows.forEach(function (r) { body.appendChild(r); });
+  }
+
+  function selectRow(tr) {
+    document.querySelectorAll('table.result tbody tr').forEach(function (r) { r.classList.remove('selected'); });
+    tr.classList.add('selected');
+    var ip = tr.dataset.ip;
+    document.getElementById('selTip').innerHTML =
+      '已选中 <b>' + ip + '</b> · ' + (tr.dataset.mac || '') + '　（双击行可直接建立 TCP 连接）';
+  }
+
+  document.getElementById('btnStart').addEventListener('click', function () {
+    if (timer) return;
+    var body = document.getElementById('resultBody');
+    body.innerHTML = '';
+    rowsData = []; scrolledIdx = 0;
+    document.getElementById('btnStart').setAttribute('disabled', 'disabled');
+    document.getElementById('btnStop').removeAttribute('disabled');
+    var tag = document.getElementById('scanTag');
+    tag.textContent = '扫描中'; tag.classList.remove('idle'); tag.style.background = 'var(--primary)';
+    var t0 = Date.now();
+    var inserted = 0;
+
+    timer = setInterval(function () {
+      // 推进进度
+      var done = Math.min(TOTAL, Math.round(TOTAL * (Date.now() - t0) / 9000) + 4);
+      document.getElementById('progFill').style.width = pct(done) + '%';
+      document.getElementById('progText').textContent = done + ' / ' + TOTAL;
+      document.getElementById('statTime').textContent = ((Date.now() - t0) / 1000).toFixed(1);
+
+      // 逐步插入样本行
+      if (inserted < SAMPLE.length && Math.random() < 0.42) {
+        var tr = buildRow(SAMPLE[inserted]);
+        body.appendChild(tr);
+        rowsData.push(tr);
+        inserted++;
+        document.getElementById('statOnline').textContent = inserted;
+      }
+
+      if (done >= TOTAL) {
+        clearInterval(timer); timer = null;
+        document.getElementById('progFill').style.width = '100%';
+        document.getElementById('statTime').textContent = ((Date.now() - t0) / 1000).toFixed(1);
+        document.getElementById('btnStart').removeAttribute('disabled');
+        document.getElementById('btnStop').setAttribute('disabled', 'disabled');
+        tag.textContent = '完成'; tag.style.background = 'var(--success)';
+        if (inserted === 0) { body.innerHTML = '<tr class="empty-row"><td colspan="9">该网段未发现在线设备</td></tr>'; }
+        // 写入扫描历史（保留最近 10 次）
+        var nd = new Date();
+        var pad = function (n) { return String(n).padStart(2, '0'); };
+        SCAN_HISTORY.unshift({
+          time: pad(nd.getMonth() + 1) + '-' + pad(nd.getDate()) + ' ' + pad(nd.getHours()) + ':' + pad(nd.getMinutes()),
+          seg: document.getElementById('netSeg').value.split(' ')[0],
+          online: inserted,
+          delta: '本次', cls: ''
+        });
+        if (SCAN_HISTORY.length > 10) SCAN_HISTORY.pop();
+        renderHistory();
+      }
+    }, 120);
+  });
+
+  document.getElementById('btnStop').addEventListener('click', function () {
+    if (timer) { clearInterval(timer); timer = null; }
+    document.getElementById('btnStart').removeAttribute('disabled');
+    document.getElementById('btnStop').setAttribute('disabled', 'disabled');
+    var tag = document.getElementById('scanTag');
+    tag.textContent = '已停止'; tag.classList.remove('idle'); tag.style.background = 'var(--warning)';
+  });
+
+  document.getElementById('btnClear').addEventListener('click', function () {
+    document.getElementById('resultBody').innerHTML =
+      '<tr class="empty-row"><td colspan="9">点击左侧「开始扫描」后，结果将实时显示在这里</td></tr>';
+    document.getElementById('statOnline').textContent = '0';
+    document.getElementById('progFill').style.width = '0%';
+    document.getElementById('progText').textContent = '0 / ' + TOTAL;
+    document.getElementById('statTime').textContent = '0.0';
+    document.getElementById('selTip').textContent = '未选中设备';
+    var tag = document.getElementById('scanTag');
+    tag.textContent = '空闲'; tag.classList.add('idle'); tag.style.background = '';
+  });
+
+  document.getElementById('btnNote').addEventListener('click', function () {
+    var sel = document.querySelector('table.result tbody tr.selected');
+    if (!sel) { alert('请先选中一行'); return; }
+    var ip = sel.dataset.ip;
+    var v = prompt('为 ' + ip + ' 添加备注：', notes[ip] || '');
+    if (v === null) return;
+    notes[ip] = v;
+    sel.querySelector('.note-cell').textContent = v;
+    document.getElementById('selTip').innerHTML = '已为 <b>' + ip + '</b> 保存备注';
+  });
+
+  document.getElementById('btnFav').addEventListener('click', function () {
+    var sel = document.querySelector('table.result tbody tr.selected');
+    if (!sel) { alert('请先选中一行'); return; }
+    var ip = sel.dataset.ip;
+    favs[ip] = !favs[ip];
+    sel.querySelector('.star').classList.toggle('on', favs[ip]);
+    sortAndRender();
+    document.getElementById('selTip').innerHTML =
+      favs[ip] ? '已收藏 <b>' + ip + '</b>，将置顶显示' : '已取消收藏 <b>' + ip + '</b>';
+  });
+
+  document.querySelectorAll('#filterSeg button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      document.querySelectorAll('#filterSeg button').forEach(function (x) { x.classList.remove('active'); });
+      b.classList.add('active');
+    });
+  });
+
+  document.querySelectorAll('input, select').forEach(function (el) {
+    el.addEventListener('change', function () {
+      var s = document.getElementById('ipStart').value.split('.').pop();
+      var e = document.getElementById('ipEnd').value.split('.').pop();
+      var n = (parseInt(e, 10) || 0) - (parseInt(s, 10) || 0) + 1;
+      if (n > 0) document.getElementById('hostCount').textContent = n;
+    });
+  });
+
+  renderHistory();
+</script>
+</body>
+</html>

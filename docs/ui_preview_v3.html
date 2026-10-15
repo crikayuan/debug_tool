@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280">
+<title>调试助手 · 三模式 UI 统一稿 V3</title>
+<style>
+  :root {
+    --primary: #2f6fed;
+    --primary-dark: #2560d8;
+    --primary-light: #eaf1fd;
+    --success: #18a058;
+    --warning: #f59e0b;
+    --warning-dark: #d98a06;
+    --danger: #e54545;
+    --danger-dark: #cf3535;
+    --bg: #f2f5fa;
+    --panel: #ffffff;
+    --border: #e2e6ed;
+    --border-strong: #d3d9e3;
+    --text: #2c313a;
+    --text-sub: #7a8291;
+    --text-mute: #a8afbb;
+    --rx: #18a058;
+    --tx: #2f6fed;
+    --auto: #8e5cd8;
+    --shadow: 0 1px 3px rgba(20, 35, 70, .06), 0 4px 14px rgba(20, 35, 70, .05);
+
+    /* 统一按钮尺寸变量 */
+    --btn-h: 28px;
+    --btn-h-sm: 24px;
+    --btn-r: 6px;
+    --btn-r-sm: 5px;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0; background: #dfe4ec;
+    font-family: "Microsoft YaHei", "PingFang SC", -apple-system, "Segoe UI", sans-serif;
+    font-size: 13px; color: var(--text);
+  }
+
+  /* ============================================================
+     统一按钮体系（三个界面共用，禁止页面内单独覆盖样式）
+     ============================================================ */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+    height: var(--btn-h); padding: 0 13px;
+    border: 1px solid var(--border-strong); border-radius: var(--btn-r);
+    background: #fff; color: #4a5260;
+    font-family: inherit; font-size: 12px; font-weight: 500; line-height: 1;
+    cursor: pointer; white-space: nowrap; user-select: none;
+    transition: background .15s, border-color .15s, color .15s;
+  }
+  .btn:hover { border-color: var(--primary); color: var(--primary); background: #f7faff; }
+  .btn:active { background: #eef4ff; }
+
+  /* 尺寸修饰符 */
+  .btn.sm { height: var(--btn-h-sm); padding: 0 10px; font-size: 11.5px; border-radius: var(--btn-r-sm); }
+  .btn.block { width: 100%; }
+
+  /* 类型修饰符 */
+  .btn.primary { background: var(--primary); border-color: var(--primary); color: #fff; font-weight: 600; }
+  .btn.primary:hover { background: var(--primary-dark); border-color: var(--primary-dark); color: #fff; }
+  .btn.primary:active { background: #1f52bb; }
+
+  .btn.danger { background: var(--danger); border-color: var(--danger); color: #fff; font-weight: 600; }
+  .btn.danger:hover { background: var(--danger-dark); border-color: var(--danger-dark); color: #fff; }
+  .btn.danger:active { background: #b92f2f; }
+
+  .btn.warn { background: #fff; border-color: var(--warning); color: var(--warning-dark); font-weight: 600; }
+  .btn.warn:hover { background: var(--warning); border-color: var(--warning); color: #fff; }
+  .btn.warn:active { background: var(--warning-dark); }
+
+  .btn.ghost { background: transparent; border-color: transparent; color: var(--text-sub); }
+  .btn.ghost:hover { background: var(--primary-light); color: var(--primary); }
+
+  /* 按钮组：相邻按钮自动收拢间距 */
+  .btn-group { display: inline-flex; align-items: center; gap: 5px; }
+
+  /* 文字链接按钮（表格内操作列专用，最小视觉重量） */
+  .btn-text-link {
+    border: none; background: none; padding: 0; cursor: pointer;
+    font-family: inherit; font-size: 11.5px; color: var(--primary);
+  }
+  .btn-text-link:hover { text-decoration: underline; }
+  .btn-text-link.danger { color: var(--danger); }
+
+  /* ============================================================
+     表单控件（三界面共用的尺寸标准）
+     ============================================================ */
+  input[type=text], input[type=number], input[type=password], select, textarea {
+    height: var(--btn-h); padding: 0 8px;
+    border: 1px solid var(--border-strong); border-radius: var(--btn-r);
+    font-family: inherit; font-size: 12px; color: var(--text); background: #fff;
+    outline: none; transition: border-color .15s;
+  }
+  textarea { height: auto; padding: 6px 8px; line-height: 1.6; }
+  input.sm, select.sm { height: var(--btn-h-sm); font-size: 11.5px; border-radius: var(--btn-r-sm); }
+  input:focus, select:focus, textarea:focus { border-color: var(--primary); }
+  input:disabled, select:disabled { background: #f6f7f9; color: var(--text-mute); cursor: not-allowed; }
+  select {
+    appearance: none; padding-right: 22px; cursor: pointer;
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath fill='%238a93a3' d='M5 7L1.5 3h7z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 7px center;
+  }
+  .chk { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text); cursor: pointer; }
+  .chk input { accent-color: var(--primary); cursor: pointer; margin: 0; }
+
+  /* ============================================================
+     顶部说明 / 规范面板
+     ============================================================ */
+  .preview-bar {
+    background: #2c313a; color: #d7dce5; padding: 8px 16px;
+    display: flex; align-items: center; gap: 16px; font-size: 12px;
+  }
+  .preview-bar b { color: #fff; font-weight: 600; }
+  .preview-bar .spacer { flex: 1; }
+  .preview-bar label { display: inline-flex; align-items: center; gap: 5px; cursor: pointer; color: #ffd88a; }
+
+  .spec-panel {
+    width: 1240px; margin: 12px auto 0; background: #fff; border-radius: 10px;
+    box-shadow: var(--shadow); padding: 10px 16px;
+  }
+  .spec-head { display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; }
+  .spec-title { font-size: 12.5px; font-weight: 700; color: var(--text); }
+  .spec-toggle { margin-left: auto; font-size: 11.5px; color: var(--primary); }
+  .spec-panel.collapsed .spec-body { display: none; }
+  .spec-body { padding-top: 8px; }
+  .spec-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding: 6px 0; border-bottom: 1px dashed #eef0f5; }
+  .spec-row:last-child { border-bottom: none; }
+  .spec-name { width: 92px; flex: none; font-size: 11.5px; color: var(--text-sub); }
+  .spec-note { font-size: 11px; color: var(--text-mute); }
+
+  /* ============================================================
+     窗口
+     ============================================================ */
+  .window {
+    width: 1240px; height: 800px; margin: 14px auto 24px; background: var(--bg);
+    border-radius: 10px; box-shadow: 0 8px 30px rgba(15,25,50,.18);
+    overflow: hidden; display: flex; flex-direction: column;
+  }
+
+  .title-bar {
+    height: 44px; flex: none; background: var(--panel); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between; padding: 0 12px;
+  }
+  .title-left { display: flex; align-items: center; gap: 12px; }
+  .app-title { font-size: 15px; font-weight: 700; letter-spacing: .5px; }
+  .title-right { display: flex; align-items: center; gap: 8px; }
+
+  .mode-switch { display: flex; border: 1px solid var(--border-strong); border-radius: var(--btn-r); overflow: hidden; }
+  .mode-switch button {
+    height: 26px; padding: 0 14px; border: none; background: #fff; color: var(--text-sub);
+    font-family: inherit; font-size: 12px; cursor: pointer; border-right: 1px solid var(--border-strong);
+    transition: all .15s;
+  }
+  .mode-switch button:last-child { border-right: none; }
+  .mode-switch button:hover { color: var(--primary); background: #f7faff; }
+  .mode-switch button.active { background: var(--primary); color: #fff; font-weight: 600; }
+
+  .tag-status {
+    display: inline-flex; align-items: center; height: 22px; padding: 0 10px;
+    border-radius: 11px; font-size: 11px; font-weight: 600; color: #fff; background: var(--success);
+  }
+  .tag-status.off { background: #b6bdc9; }
+
+  .main-body { flex: 1; display: flex; min-height: 0; }
+
+  /* ============================================================
+     左栏
+     ============================================================ */
+  .left-panel { width: 258px; flex: none; background: var(--panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; }
+  .panel-head { padding: 10px 12px; border-bottom: 1px solid var(--border); display: flex; align-items: center; }
+  .panel-title { font-size: 13px; font-weight: 600; padding-left: 8px; position: relative; }
+  .panel-title::before { content: ''; position: absolute; left: 0; top: 2px; bottom: 2px; width: 3px; border-radius: 2px; background: var(--primary); }
+  .panel-scroll { flex: 1; overflow-y: auto; padding: 4px 0; }
+
+  .sec { border-bottom: 1px solid var(--border); }
+  .sec-head { padding: 9px 12px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-size: 12.5px; font-weight: 600; }
+  .sec-head:hover { background: #f8fafc; }
+  .sec-head .arrow { color: var(--text-mute); font-size: 10px; transition: transform .15s; }
+  .sec.open .sec-head { color: var(--primary); }
+  .sec.open .sec-head .arrow { transform: rotate(90deg); }
+  .sec-body { display: none; padding: 2px 12px 10px; }
+  .sec.open .sec-body { display: block; }
+
+  .form-row { display: flex; align-items: center; margin-bottom: 7px; gap: 8px; }
+  .form-row > label { width: 66px; flex: none; font-size: 12px; color: var(--text-sub); text-align: right; }
+  .form-row .ctl { flex: 1; min-width: 0; }
+  .row-inline { display: flex; gap: 6px; align-items: center; }
+  .hint { font-size: 11px; color: var(--text-mute); margin-top: 7px; line-height: 1.5; }
+
+  .stat-bar { flex: none; border-top: 1px solid var(--border); padding: 8px 12px; background: #fafbfd; }
+  .stat-row { display: flex; align-items: baseline; justify-content: space-between; font-size: 12px; padding: 2px 0; }
+  .stat-label { color: var(--text-sub); }
+  .stat-value { font-weight: 700; }
+  .stat-count { color: var(--text-mute); font-size: 11px; min-width: 48px; text-align: right; }
+  .panel-foot { flex: none; padding: 8px 12px; border-top: 1px solid var(--border); }
+
+  /* ============================================================
+     中栏
+     ============================================================ */
+  .center-panel { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+
+  /* 工具栏（三界面统一高度与控件规格） */
+  .toolbar {
+    flex: none; height: 42px; padding: 0 14px; background: #fff;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  }
+  .toolbar-left { display: flex; align-items: center; gap: 14px; min-width: 0; }
+  .toolbar-right { display: flex; align-items: center; gap: 6px; flex: none; }
+
+  /* 内容区 */
+  .content { flex: 1; overflow-y: auto; min-height: 0; }
+  .content.lines { background: #fdfdfe; padding: 6px 12px; font-family: Consolas, "Courier New", monospace; font-size: 12px; line-height: 1.9; }
+  .content.cards { background: #f7f9fc; padding: 10px 14px; }
+
+  /* 日志行（网络 / 串口） */
+  .log-line { display: flex; gap: 8px; align-items: baseline; }
+  .log-dir { flex: none; width: 36px; font-weight: 700; font-size: 11px; }
+  .log-line.dir-rx .log-dir { color: var(--rx); }
+  .log-line.dir-tx .log-dir { color: var(--tx); }
+  .log-line.dir-auto .log-dir { color: var(--auto); }
+  .log-time { flex: none; color: var(--text-mute); font-size: 11px; }
+  .log-client { flex: none; color: #b26a00; background: #fff6e5; border-radius: 3px; padding: 0 5px; font-size: 11px; }
+  .log-data { word-break: break-all; }
+
+  /* 消息卡片（MQTT） */
+  .msg-card {
+    margin-bottom: 10px; padding: 10px 12px; border-radius: 10px;
+    background: #fff; border: 1px solid var(--border); box-shadow: var(--shadow);
+  }
+  .msg-card.tx { border-left: 3px solid var(--tx); }
+  .msg-card.rx { border-left: 3px solid var(--rx); }
+  .msg-card.auto { border-left: 3px solid var(--auto); }
+  .msg-header { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; flex-wrap: wrap; }
+  .msg-time { font-size: 11px; color: var(--text-mute); font-family: Consolas, monospace; }
+  .topic-tag {
+    display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px;
+    border-radius: 12px; font-size: 11.5px; font-weight: 600;
+  }
+  .topic-dot { width: 7px; height: 7px; border-radius: 50%; }
+  .msg-dir { margin-left: auto; font-size: 11px; font-weight: 700; }
+  .msg-dir.rx { color: var(--rx); }
+  .msg-dir.tx { color: var(--tx); }
+  .msg-dir.auto { color: var(--auto); }
+  .msg-qos { font-size: 10px; color: var(--text-mute); background: #f2f4f8; padding: 1px 5px; border-radius: 4px; }
+  .msg-retain { font-size: 10px; color: var(--warning-dark); border: 1px solid #f6d99a; padding: 0 4px; border-radius: 4px; }
+  .msg-payload {
+    font-family: Consolas, "Courier New", monospace; font-size: 13px; line-height: 1.65;
+    background: #fafbfc; padding: 8px 10px; border-radius: 6px; word-break: break-all;
+  }
+
+  /* 客户端栏（TCP Server 专用） */
+  .client-bar {
+    flex: none; height: 40px; padding: 0 14px; background: #fcfdff;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--text-sub);
+  }
+  .client-bar select { width: auto; min-width: 170px; }
+  .client-count { color: var(--text-mute); font-size: 11.5px; }
+
+  /* 连接信息条（MQTT） */
+  .conn-bar {
+    flex: none; height: 40px; padding: 0 14px; background: #fcfdff;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  }
+  .conn-info { display: flex; align-items: center; gap: 16px; font-size: 12px; color: var(--text-sub); min-width: 0; }
+  .conn-info b { color: var(--text); font-weight: 600; }
+  .conn-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); flex: none; }
+  .conn-dot.off { background: #b6bdc9; }
+
+  /* 发送面板 */
+  .send-panel { flex: none; background: #fff; border-top: 1px solid var(--border); }
+  .send-opts {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    padding: 8px 14px; border-bottom: 1px solid #f0f2f6; background: #fcfdff;
+  }
+  .send-opts .lbl { font-size: 12px; color: var(--text-sub); }
+  .send-opts select { width: auto; }
+  .send-actions { margin-left: auto; display: flex; gap: 6px; }
+
+  /* 分段选择器（文本 / HEX） */
+  .seg { display: inline-flex; border: 1px solid var(--border-strong); border-radius: var(--btn-r); overflow: hidden; }
+  .seg button {
+    height: 26px; padding: 0 13px; border: none; background: #fff; color: var(--text-sub);
+    font-family: inherit; font-size: 12px; cursor: pointer; border-right: 1px solid var(--border-strong);
+  }
+  .seg button:last-child { border-right: none; }
+  .seg button:hover { color: var(--primary); }
+  .seg button.active { background: var(--primary); color: #fff; font-weight: 600; }
+
+  .send-input-area { padding: 8px 14px; }
+  .send-input-area textarea {
+    width: 100%; height: 62px; resize: none; font-family: Consolas, monospace; font-size: 13px;
+  }
+  .topic-row { display: flex; align-items: center; gap: 10px; padding: 8px 14px; border-bottom: 1px solid #f0f2f6; background: #fcfdff; }
+  .topic-row .lbl { font-size: 12px; color: var(--text-sub); flex: none; }
+  .topic-row .topic-input { flex: 1; min-width: 0; }
+  .topic-row select { width: auto; }
+
+  /* 分隔条 */
+  .v-splitter { width: 5px; flex: none; cursor: col-resize; background: var(--border); transition: background .15s; }
+  .v-splitter:hover { background: var(--primary); }
+
+  /* ============================================================
+     右栏
+     ============================================================ */
+  .right-panel { width: 300px; flex: none; background: var(--panel); border-left: 1px solid var(--border); display: flex; flex-direction: column; }
+  .module-nav { flex: none; display: flex; align-items: center; gap: 2px; padding: 6px 8px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  .module-tab { padding: 4px 8px; font-size: 11.5px; color: var(--text-sub); border-radius: 5px; cursor: pointer; white-space: nowrap; transition: all .15s; }
+  .module-tab:hover { background: #f4f6fa; color: var(--primary); }
+  .module-tab.active { background: var(--primary); color: #fff; font-weight: 600; }
+  .nav-toggle { margin-left: auto; padding: 3px 7px; font-size: 12px; color: var(--text-mute); cursor: pointer; border-radius: 4px; }
+  .nav-toggle:hover { background: #f4f6fa; color: var(--primary); }
+  .module-content { flex: 1; overflow-y: auto; padding: 10px 12px; }
+  .mod-title { font-size: 13px; font-weight: 600; margin-bottom: 10px; }
+
+  .sub-add { display: flex; gap: 5px; margin-bottom: 10px; align-items: center; }
+  .sub-add input { flex: 1; min-width: 0; }
+  .sub-add select { width: 66px; flex: none; }
+
+  .sub-card {
+    display: flex; align-items: center; gap: 8px; padding: 8px;
+    border-radius: 8px; border: 1px solid var(--border); margin-bottom: 8px;
+    background: #fff; cursor: pointer; transition: all .15s;
+  }
+  .sub-card:hover { border-color: var(--primary); background: #fafbff; }
+  .sub-card.active { border-color: var(--primary); background: var(--primary-light); }
+  .sub-color { width: 4px; height: 36px; border-radius: 2px; flex: none; }
+  .sub-info { flex: 1; min-width: 0; }
+  .sub-topic { font-weight: 600; font-size: 12px; word-break: break-all; }
+  .sub-meta { font-size: 11px; color: var(--text-mute); margin-top: 2px; display: flex; gap: 8px; }
+  .sub-actions { display: flex; flex-direction: column; gap: 3px; flex: none; }
+
+  .empty-tip { color: var(--text-mute); font-size: 11.5px; text-align: center; padding: 20px 0; }
+
+  body.show-marks .mark-new { position: relative; outline: 2px dashed var(--warning); outline-offset: 2px; }
+  body.show-marks .mark-new::after {
+    content: '新增'; position: absolute; top: -9px; left: -2px;
+    background: var(--warning); color: #fff; font-size: 10px; line-height: 1;
+    padding: 2px 5px; border-radius: 3px; font-weight: 600; z-index: 5;
+  }
+</style>
+</head>
+<body class="show-marks">
+
+<div class="preview-bar">
+  <b>三模式 UI 统一稿 V3</b>
+  <span>按钮体系统一：同一套尺寸 / 圆角 / 配色 / 层级，网络 · 串口 · MQTT 三界面完全一致</span>
+  <span class="spacer"></span>
+  <label><input type="checkbox" id="markToggle" checked> 显示「新增」标注</label>
+</div>
+
+<!-- 按钮规范对照（评审参考，默认收起，不进入正式界面） -->
+<div class="spec-panel collapsed" id="specPanel">
+  <div class="spec-head" id="specHead">
+    <span class="spec-title">按钮规范对照表</span>
+    <span class="spec-note">评审参考用，正式软件里没有这一块</span>
+    <span class="spec-toggle" id="specToggle">展开</span>
+  </div>
+  <div class="spec-body">
+  <div class="spec-row">
+    <span class="spec-name">主操作</span>
+    <div class="btn-group">
+      <button class="btn primary">发送</button>
+      <button class="btn primary">打开连接</button>
+      <button class="btn primary sm">订阅</button>
+    </div>
+    <span class="spec-note">蓝底白字，每屏仅一处主操作，固定在右侧</span>
+  </div>
+  <div class="spec-row">
+    <span class="spec-name">次操作</span>
+    <div class="btn-group">
+      <button class="btn">保存</button>
+      <button class="btn">清空</button>
+      <button class="btn sm">刷新</button>
+      <button class="btn sm">浏览</button>
+    </div>
+    <span class="spec-note">白底灰边，hover 转主色描边</span>
+  </div>
+  <div class="spec-row">
+    <span class="spec-name">危险操作</span>
+    <div class="btn-group">
+      <button class="btn danger">断开连接</button>
+    </div>
+    <span class="spec-note">红底白字，仅用于「断开连接」</span>
+  </div>
+  <div class="spec-row">
+    <span class="spec-name">状态提示</span>
+    <div class="btn-group">
+      <button class="btn warn sm">暂停显示</button>
+    </div>
+    <span class="spec-note">橙描边白底，仅用于「暂停显示」；暂停中翻转为橙底白字</span>
+  </div>
+  <div class="spec-row">
+    <span class="spec-name">链接操作</span>
+    <div class="btn-group">
+      <button class="btn-text-link">设为默认</button>
+      <button class="btn-text-link danger">取消</button>
+    </div>
+    <span class="spec-note">无边框纯文字，仅用于列表/卡片内的行内操作</span>
+  </div>
+  <div class="spec-row">
+    <span class="spec-name">分段选择</span>
+    <div class="btn-group">
+      <div class="seg"><button class="active">HEX</button><button>文本</button></div>
+      <div class="seg"><button class="active">TCP Server</button><button>TCP Client</button><button>UDP</button></div>
+    </div>
+    <span class="spec-note">互斥选项用分段控件，不用多个独立按钮</span>
+  </div>
+  <div class="spec-row">
+    <span class="spec-name">尺寸</span>
+    <span class="spec-note">标准 28px 高（表单、发送区）；紧凑 24px 高（工具栏、卡片内）；圆角统一 6px / 5px</span>
+  </div>
+  </div>
+</div>
+
+<!-- ============ 模拟窗口 ============ -->
+<div class="window">
+  <header class="title-bar">
+    <div class="title-left">
+      <span class="app-title">调试助手</span>
+      <div class="mode-switch">
+        <button data-mode="network" class="active">网络调试</button>
+        <button data-mode="serial">串口调试</button>
+        <button data-mode="mqtt">MQTT调试</button>
+      </div>
+    </div>
+    <div class="title-right">
+      <span class="tag-status" id="connTag">已连接</span>
+      <button class="btn ghost sm" id="tglLeft">隐藏参数</button>
+      <button class="btn ghost sm" id="tglRight">隐藏模块</button>
+    </div>
+  </header>
+
+  <div class="main-body">
+    <!-- ============ 左栏 ============ -->
+    <aside class="left-panel">
+      <div class="panel-head"><span class="panel-title">连接设置</span></div>
+      <div class="panel-scroll">
+
+        <div class="sec open" data-sec>
+          <div class="sec-head"><span>连接参数</span><span class="arrow">&#9654;</span></div>
+          <div class="sec-body">
+            <!-- 网络 -->
+            <div class="cfg" id="cfgNetwork">
+              <div class="form-row"><label>协议</label><div class="ctl"><select disabled><option>TCP Server</option></select></div></div>
+              <div class="form-row"><label>本地IP</label><div class="ctl"><select disabled><option>192.168.1.153 · 有线</option></select></div></div>
+              <div class="form-row"><label>本地端口</label><div class="ctl"><input type="number" value="8080" disabled></div></div>
+            </div>
+            <!-- 串口 -->
+            <div class="cfg" id="cfgSerial" style="display:none">
+              <div class="form-row"><label>串口号</label><div class="ctl"><div class="row-inline"><select disabled><option>COM3 - CH340</option></select><button class="btn sm">刷新</button></div></div></div>
+              <div class="form-row"><label>波特率</label><div class="ctl"><select disabled><option>9600</option></select></div></div>
+              <div class="form-row"><label>数据位</label><div class="ctl"><select disabled><option>8</option></select></div></div>
+              <div class="form-row"><label>停止位</label><div class="ctl"><select disabled><option>1</option></select></div></div>
+              <div class="form-row"><label>校验位</label><div class="ctl"><select disabled><option>无</option></select></div></div>
+            </div>
+            <!-- MQTT -->
+            <div class="cfg" id="cfgMqtt" style="display:none">
+              <div class="form-row mark-new"><label>Broker</label><div class="ctl"><input type="text" value="broker.emqx.io" disabled></div></div>
+              <div class="form-row mark-new"><label>端口</label><div class="ctl"><input type="number" value="1883" disabled></div></div>
+              <div class="form-row mark-new"><label>ClientID</label><div class="ctl"><input type="text" value="debug-assistant-a3f91c2b" disabled></div></div>
+              <div class="form-row mark-new"><label>用户名</label><div class="ctl"><input type="text" placeholder="可选" disabled></div></div>
+              <div class="form-row mark-new"><label>密码</label><div class="ctl"><input type="password" placeholder="可选" disabled></div></div>
+              <div class="form-row mark-new">
+                <label>会话</label>
+                <div class="ctl" style="display:flex;gap:12px;align-items:center">
+                  <label class="chk"><input type="checkbox" checked disabled> Clean</label>
+                  <label class="chk"><input type="checkbox" checked disabled> 自动重连</label>
+                </div>
+              </div>
+              <div class="form-row mark-new"><label>心跳</label><div class="ctl"><input type="number" value="60" disabled></div></div>
+              <div class="hint">默认 MQTT 3.1.1；TLS / 遗嘱 / 5.0 / WebSocket 二期支持</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="sec" data-sec>
+          <div class="sec-head"><span>显示设置</span><span class="arrow">&#9654;</span></div>
+          <div class="sec-body">
+            <div style="display:flex;flex-direction:column;gap:7px">
+              <label class="chk"><input type="checkbox" checked> 显示时间</label>
+              <label class="chk"><input type="checkbox" checked> HEX 显示</label>
+              <label class="chk"><input type="checkbox" checked> 自动滚动</label>
+              <label class="chk"><input type="checkbox" checked> 自动换行</label>
+            </div>
+            <div class="hint">日志保留最近 2000 行</div>
+          </div>
+        </div>
+
+        <div class="sec" data-sec>
+          <div class="sec-head"><span>发送设置</span><span class="arrow">&#9654;</span></div>
+          <div class="sec-body">
+            <label class="chk"><input type="checkbox"> 循环发送</label>
+            <div class="form-row" style="margin-top:8px"><label>周期</label><div class="ctl"><input type="number" value="1000"></div><span class="hint" style="margin:0">ms</span></div>
+            <div class="form-row"><label>结束符</label><div class="ctl"><select><option>无</option></select></div></div>
+          </div>
+        </div>
+
+        <div class="sec" data-sec>
+          <div class="sec-head"><span>数据保存</span><span class="arrow">&#9654;</span></div>
+          <div class="sec-body">
+            <label class="chk"><input type="checkbox"> 持续保存到文件</label>
+            <div class="form-row" style="margin-top:8px"><label>文件名</label><div class="ctl"><input type="text" value="debug_20261014_102533.txt"></div></div>
+            <div class="form-row"><label>目录</label><div class="ctl"><div class="row-inline"><input type="text" placeholder="留空存到程序目录"><button class="btn sm">浏览</button></div></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="stat-bar">
+        <div class="stat-row"><span class="stat-label">接收</span><span class="stat-value" id="rxBytes">1.24 KB</span><span class="stat-count" id="rxCount">18 包</span></div>
+        <div class="stat-row"><span class="stat-label">发送</span><span class="stat-value" id="txBytes">412 B</span><span class="stat-count" id="txCount">5 包</span></div>
+        <button class="btn sm block" style="margin-top:6px" id="resetStats">计数清零</button>
+      </div>
+      <div class="panel-foot">
+        <button class="btn primary block" id="connBtn">打开连接</button>
+      </div>
+    </aside>
+
+    <!-- ============ 中栏 ============ -->
+    <main class="center-panel">
+      <div class="toolbar">
+        <span class="panel-title" id="toolbarTitle">数据日志</span>
+        <div class="toolbar-right">
+          <select class="sm" style="width:86px"><option>HEX</option><option>文本</option></select>
+          <select class="sm" style="width:92px"><option>UTF-8</option><option>GBK</option></select>
+          <button class="btn sm">保存</button>
+          <button class="btn sm" id="clearBtn">清空</button>
+        </div>
+      </div>
+
+      <!-- 网络模式 -->
+      <div class="content lines" id="viewNetwork">
+        <div class="client-bar" style="margin:-6px -12px 6px;border-radius:0">
+          <span>发送对象</span>
+          <select class="sm"><option>广播全部 (2)</option><option>指定: 192.168.1.22:53104</option></select>
+          <button class="btn sm">管理</button>
+          <span class="client-count">2 在线</span>
+        </div>
+        <div class="log-line dir-rx"><span class="log-dir">RX</span><span class="log-time">10:31:02.114</span><span class="log-client">192.168.1.22:53104</span><span class="log-data">01 03 00 00 00 02 C4 0B</span></div>
+        <div class="log-line dir-tx"><span class="log-dir">TX</span><span class="log-time">10:31:02.650</span><span class="log-data">01 03 04 00 1A 00 2B 8C 4E</span></div>
+        <div class="log-line dir-rx"><span class="log-dir">RX</span><span class="log-time">10:31:03.220</span><span class="log-client">192.168.1.31:49822</span><span class="log-data">AA BB 01 00 FF</span></div>
+        <div class="log-line dir-auto"><span class="log-dir">AUTO</span><span class="log-time">10:31:03.240</span><span class="log-data">01 03 02 00 01 78 4C</span></div>
+      </div>
+
+      <!-- 串口模式 -->
+      <div class="content lines" id="viewSerial" style="display:none">
+        <div class="log-line dir-rx"><span class="log-dir">RX</span><span class="log-time">10:28:41.007</span><span class="log-data">01 03 04 00 1A 00 2B 8C 4E</span></div>
+        <div class="log-line dir-tx"><span class="log-dir">TX</span><span class="log-time">10:28:41.512</span><span class="log-data">01 03 00 00 00 02 C4 0B</span></div>
+        <div class="log-line dir-rx"><span class="log-dir">RX</span><span class="log-time">10:28:42.003</span><span class="log-data">01 03 04 00 1C 00 31 5A 9F</span></div>
+      </div>
+
+      <!-- MQTT 模式 -->
+      <div class="content cards" id="viewMqtt" style="display:none">
+        <div class="conn-bar mark-new" style="margin:-10px -14px 10px;border-radius:0">
+          <div class="conn-info">
+            <div class="conn-dot"></div>
+            <span>Broker: <b>broker.emqx.io:1883</b></span>
+            <span>ClientID: <b>debug-assistant-a3f91c2b</b></span>
+            <span>订阅: <b id="subCount">3</b> 个主题</span>
+          </div>
+          <button class="btn danger sm" id="connBtn2">断开连接</button>
+        </div>
+        <div id="msgList"></div>
+      </div>
+
+      <!-- 发送面板（三界面结构一致） -->
+      <section class="send-panel">
+        <div class="topic-row mark-new" id="mqttTopicRow" style="display:none">
+          <span class="lbl">发布主题</span>
+          <div class="topic-input"><input type="text" id="pubTopic" value="berth/cmd/001" placeholder="例如 berth/cmd/001"></div>
+          <select id="pubQos" style="width:80px"><option value="0">QoS 0</option><option value="1" selected>QoS 1</option><option value="2">QoS 2</option></select>
+          <label class="chk"><input type="checkbox" id="pubRetain"> Retain</label>
+        </div>
+        <div class="send-opts">
+          <div class="seg" id="fmtSeg">
+            <button class="active" data-fmt="text">文本</button>
+            <button data-fmt="hex">HEX</button>
+          </div>
+          <span class="lbl">结束符</span>
+          <select class="sm" style="width:78px"><option>无</option><option>\n</option><option>\r\n</option></select>
+          <span class="lbl">校验</span>
+          <select class="sm" style="width:86px"><option>无</option><option>Sum</option><option>CRC16</option></select>
+          <div class="send-actions">
+            <button class="btn warn sm" id="pauseBtn">暂停显示</button>
+            <button class="btn primary" id="sendBtn" style="height:24px;font-size:11.5px">发送</button>
+            <button class="btn sm" id="clearSend">清空</button>
+          </div>
+        </div>
+        <div class="send-input-area">
+          <textarea id="sendText" placeholder="请输入要发送的数据">01 03 00 00 00 02 C4 0B</textarea>
+        </div>
+      </section>
+    </main>
+
+    <div class="v-splitter"></div>
+
+    <!-- ============ 右栏 ============ -->
+    <aside class="right-panel">
+      <div class="module-nav" id="moduleNav">
+        <div class="module-tab active" data-mod="quick">快捷指令</div>
+        <div class="module-tab" data-mod="batch">批量发送</div>
+        <div class="module-tab" data-mod="history">历史发送</div>
+        <div class="module-tab" data-mod="reply">自动应答</div>
+        <div class="module-tab mark-new" data-mod="sub" id="tabSub" style="display:none">订阅</div>
+        <div class="module-tab" data-mod="modbus">Modbus</div>
+        <div class="module-tab" data-mod="toolbox">工具箱</div>
+        <div class="module-tab" data-mod="settings">设置</div>
+        <div class="nav-toggle">&raquo;</div>
+      </div>
+      <div class="module-content" id="modContent"></div>
+    </aside>
+  </div>
+</div>
+
+<script>
+  var colors = ['#2f6fed','#18a058','#f59e0b','#8e5cd8','#e54545','#0ea5e9','#f43f5e','#10b981'];
+  var topicColorMap = {};
+  function colorFor(t) {
+    if (!topicColorMap[t]) topicColorMap[t] = colors[Object.keys(topicColorMap).length % colors.length];
+    return topicColorMap[t];
+  }
+  function hexToRgba(hex, a) {
+    var r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+    return 'rgba(' + r + ',' + g + ',' + b + ',' + a + ')';
+  }
+  function escapeHtml(s) { return s.replace(/[&<>]/g, function (m) { return {'&':'&amp;','<':'&lt;','>':'&gt;'}[m]; }); }
+  function nowStr() {
+    var d = new Date();
+    function p(n, w) { return String(n).padStart(w || 2, '0'); }
+    return p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds()) + '.' + p(d.getMilliseconds(), 3);
+  }
+
+  /* ---------- 订阅数据 ---------- */
+  var subscriptions = [
+    { topic: 'berth/sensor/+', qos: 0, count: 12 },
+    { topic: 'berth/cmd/001', qos: 1, count: 3 },
+    { topic: 'berth/status/#', qos: 0, count: 2 }
+  ];
+  var defaultTopic = 'berth/cmd/001';
+  var paused = false, pending = 0, rxCount = 18, txCount = 5, autoTimer = null;
+
+  /* ---------- 右栏模块内容 ---------- */
+  var contentByMod = {
+    quick: '<div class="mod-title">快捷指令</div><div class="empty-tip">现有功能 · 本次不涉及改动</div>',
+    batch: '<div class="mod-title">批量发送</div><div class="empty-tip">现有功能 · 本次不涉及改动</div>',
+    history: '<div class="mod-title">历史发送</div><div class="empty-tip">现有功能 · 本次不涉及改动</div>',
+    reply: '<div class="mod-title">自动应答</div><div class="empty-tip">现有功能 · 本次不涉及改动</div>',
+    modbus: '<div class="mod-title">Modbus</div><div class="empty-tip">现有功能 · 本次不涉及改动</div>',
+    toolbox: '<div class="mod-title">工具箱</div><div class="empty-tip">现有功能 · 本次不涉及改动</div>',
+    settings: '<div class="mod-title">设置</div><div class="empty-tip">现有功能 · 本次不涉及改动</div>',
+    sub: '<div class="mod-title">订阅管理</div>' +
+      '<div class="sub-add mark-new">' +
+        '<input type="text" id="subTopic" placeholder="主题，支持 + / # 通配符">' +
+        '<select id="subQos"><option value="0">QoS0</option><option value="1">QoS1</option><option value="2">QoS2</option></select>' +
+        '<button class="btn primary sm" id="subAdd">订阅</button>' +
+      '</div>' +
+      '<div id="subList"></div>' +
+      '<div class="hint">点击订阅卡片可把主题填入发送区；断线重连后自动恢复订阅</div>'
+  };
+
+  function renderMod(mod) {
+    document.getElementById('modContent').innerHTML = contentByMod[mod] || '';
+    if (mod === 'sub') initSub();
+  }
+
+  function renderSubs() {
+    var box = document.getElementById('subList');
+    if (!box) return;
+    box.innerHTML = '';
+    subscriptions.forEach(function (s, idx) {
+      var c = colorFor(s.topic);
+      var div = document.createElement('div');
+      div.className = 'sub-card' + (s.topic === defaultTopic ? ' active' : '');
+      div.innerHTML =
+        '<div class="sub-color" style="background:' + c + '"></div>' +
+        '<div class="sub-info">' +
+          '<div class="sub-topic">' + s.topic + '</div>' +
+          '<div class="sub-meta"><span>QoS ' + s.qos + '</span><span>' + s.count + ' 条消息</span></div>' +
+        '</div>' +
+        '<div class="sub-actions">' +
+          '<button class="btn-text-link" data-act="set" data-idx="' + idx + '">设为默认</button>' +
+          '<button class="btn-text-link danger" data-act="del" data-idx="' + idx + '">取消</button>' +
+        '</div>';
+      div.addEventListener('click', function (e) {
+        if (e.target.tagName !== 'BUTTON') {
+          document.getElementById('pubTopic').value = s.topic;
+        }
+      });
+      box.appendChild(div);
+    });
+    box.querySelectorAll('.btn-text-link').forEach(function (b) {
+      b.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var idx = +b.dataset.idx;
+        if (b.dataset.act === 'del') subscriptions.splice(idx, 1);
+        else { defaultTopic = subscriptions[idx].topic; document.getElementById('pubTopic').value = defaultTopic; }
+        renderSubs();
+      });
+    });
+    var sc = document.getElementById('subCount');
+    if (sc) sc.textContent = subscriptions.length;
+  }
+
+  function initSub() {
+    renderSubs();
+    var add = document.getElementById('subAdd');
+    if (add) add.addEventListener('click', function () {
+      var t = document.getElementById('subTopic').value.trim();
+      if (!t) return;
+      subscriptions.push({ topic: t, qos: +document.getElementById('subQos').value, count: 0 });
+      document.getElementById('subTopic').value = '';
+      renderSubs();
+    });
+  }
+
+  /* ---------- MQTT 消息卡片 ---------- */
+  function addMsg(dir, topic, qos, payload, retain) {
+    if (paused) { pending++; updatePause(); return; }
+    var list = document.getElementById('msgList');
+    if (!list) return;
+    var c = colorFor(topic);
+    var card = document.createElement('div');
+    card.className = 'msg-card ' + dir;
+    var dirLabel = dir === 'rx' ? '← 接收' : (dir === 'tx' ? '→ 发送' : '自动');
+    card.innerHTML =
+      '<div class="msg-header">' +
+        '<span class="msg-time">' + nowStr() + '</span>' +
+        '<span class="topic-tag" style="background:' + hexToRgba(c,.1) + ';color:' + c + '">' +
+          '<span class="topic-dot" style="background:' + c + '"></span>' + topic + '</span>' +
+        '<span class="msg-qos">QoS' + qos + '</span>' +
+        (retain ? '<span class="msg-retain">Retain</span>' : '') +
+        '<span class="msg-dir ' + dir + '">' + dirLabel + '</span>' +
+      '</div>' +
+      '<div class="msg-payload">' + escapeHtml(payload) + '</div>';
+    list.appendChild(card);
+    list.scrollTop = list.scrollHeight;
+    subscriptions.forEach(function (s) { if (matchTopic(topic, s.topic)) s.count++; });
+    renderSubs();
+  }
+
+  function matchTopic(actual, pattern) {
+    var a = actual.split('/'), p = pattern.split('/');
+    for (var i = 0; i < p.length; i++) {
+      if (p[i] === '#') return true;
+      if (p[i] !== '+' && p[i] !== a[i]) return false;
+    }
+    return a.length === p.length;
+  }
+
+  /* ---------- 模式切换 ---------- */
+  var modes = ['network', 'serial', 'mqtt'];
+  function setMode(m) {
+    document.querySelectorAll('.mode-switch button').forEach(function (b) {
+      b.classList.toggle('active', b.dataset.mode === m);
+    });
+    document.getElementById('cfgNetwork').style.display = m === 'network' ? '' : 'none';
+    document.getElementById('cfgSerial').style.display = m === 'serial' ? '' : 'none';
+    document.getElementById('cfgMqtt').style.display = m === 'mqtt' ? '' : 'none';
+    document.getElementById('viewNetwork').style.display = m === 'network' ? '' : 'none';
+    document.getElementById('viewSerial').style.display = m === 'serial' ? '' : 'none';
+    document.getElementById('viewMqtt').style.display = m === 'mqtt' ? '' : 'none';
+    document.getElementById('mqttTopicRow').style.display = m === 'mqtt' ? '' : 'none';
+    document.getElementById('toolbarTitle').textContent = m === 'mqtt' ? '消息记录' : '数据日志';
+    document.getElementById('tabSub').style.display = m === 'mqtt' ? '' : 'none';
+
+    if (m !== 'mqtt' && document.querySelector('.module-tab[data-mod="sub"]').classList.contains('active')) {
+      switchMod('quick');
+    }
+    if (m === 'mqtt') { switchMod('sub'); startAutoRx(); } else { stopAutoRx(); }
+  }
+
+  function switchMod(mod) {
+    document.querySelectorAll('.module-tab').forEach(function (x) { x.classList.toggle('active', x.dataset.mod === mod); });
+    renderMod(mod);
+  }
+
+  document.querySelectorAll('.mode-switch button').forEach(function (b) {
+    b.addEventListener('click', function () { setMode(b.dataset.mode); });
+  });
+  document.querySelectorAll('.module-tab').forEach(function (b) {
+    b.addEventListener('click', function () { switchMod(b.dataset.mod); });
+  });
+
+  /* ---------- 交互 ---------- */
+  document.querySelectorAll('[data-sec]').forEach(function (sec) {
+    sec.querySelector('.sec-head').addEventListener('click', function () { sec.classList.toggle('open'); });
+  });
+  document.getElementById('markToggle').addEventListener('change', function (e) {
+    document.body.classList.toggle('show-marks', e.target.checked);
+  });
+
+  // 按钮规范面板：默认收起，仅评审参考
+  document.getElementById('specHead').addEventListener('click', function () {
+    var p = document.getElementById('specPanel');
+    p.classList.toggle('collapsed');
+    document.getElementById('specToggle').textContent = p.classList.contains('collapsed') ? '展开' : '收起';
+  });
+  document.querySelectorAll('#fmtSeg button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      document.querySelectorAll('#fmtSeg button').forEach(function (x) { x.classList.remove('active'); });
+      b.classList.add('active');
+    });
+  });
+
+  var networkTexts = ['01 03 00 00 00 02 C4 0B', 'AA BB 01 00 FF'];
+  document.getElementById('sendBtn').addEventListener('click', function () {
+    var d = document.getElementById('sendText').value.trim() || '(空)';
+    var m = document.querySelector('.mode-switch button.active').dataset.mode;
+    if (m === 'mqtt') {
+      var t = document.getElementById('pubTopic').value.trim();
+      if (!t) { alert('请先填写发布主题'); return; }
+      addMsg('tx', t, +document.getElementById('pubQos').value, d, document.getElementById('pubRetain').checked);
+      txCount++;
+    } else {
+      var box = document.getElementById(m === 'network' ? 'viewNetwork' : 'viewSerial');
+      var line = document.createElement('div');
+      line.className = 'log-line dir-tx';
+      line.innerHTML = '<span class="log-dir">TX</span><span class="log-time">' + nowStr() + '</span><span class="log-data">' + escapeHtml(d) + '</span>';
+      box.appendChild(line);
+      box.scrollTop = box.scrollHeight;
+      txCount++;
+    }
+    updateStats();
+  });
+
+  document.getElementById('clearSend').addEventListener('click', function () { document.getElementById('sendText').value = ''; });
+  document.getElementById('clearBtn').addEventListener('click', function () {
+    var m = document.querySelector('.mode-switch button.active').dataset.mode;
+    if (m === 'mqtt') document.getElementById('msgList').innerHTML = '';
+    else document.getElementById(m === 'network' ? 'viewNetwork' : 'viewSerial').innerHTML = '';
+  });
+
+  function updatePause() {
+    var b = document.getElementById('pauseBtn');
+    if (paused) {
+      b.textContent = '继续显示' + (pending ? ' (' + pending + ')' : '');
+      b.classList.remove('warn'); b.classList.add('primary');
+    } else {
+      b.textContent = '暂停显示';
+      b.classList.add('warn'); b.classList.remove('primary');
+    }
+  }
+  document.getElementById('pauseBtn').addEventListener('click', function () {
+    paused = !paused; if (!paused) pending = 0; updatePause();
+  });
+
+  function updateStats() {
+    document.getElementById('rxCount').textContent = rxCount + ' 包';
+    document.getElementById('txCount').textContent = txCount + ' 包';
+  }
+
+  function toggleConn() {
+    var tag = document.getElementById('connTag');
+    var on = tag.textContent === '已连接';
+    var dots = document.querySelectorAll('.conn-dot');
+    var b1 = document.getElementById('connBtn'), b2 = document.getElementById('connBtn2');
+    if (on) {
+      tag.textContent = '未连接'; tag.classList.add('off');
+      dots.forEach(function (d) { d.classList.add('off'); });
+      b1.textContent = '打开连接'; b1.classList.remove('danger'); b1.classList.add('primary');
+      b2.textContent = '打开连接'; b2.classList.remove('danger'); b2.classList.add('primary');
+      stopAutoRx();
+    } else {
+      tag.textContent = '已连接'; tag.classList.remove('off');
+      dots.forEach(function (d) { d.classList.remove('off'); });
+      b1.textContent = '断开连接'; b1.classList.add('danger'); b1.classList.remove('primary');
+      b2.textContent = '断开连接'; b2.classList.add('danger'); b2.classList.remove('primary');
+      if (document.querySelector('.mode-switch button.active').dataset.mode === 'mqtt') startAutoRx();
+    }
+  }
+  document.getElementById('connBtn').addEventListener('click', toggleConn);
+  document.getElementById('connBtn2').addEventListener('click', toggleConn);
+
+  function startAutoRx() {
+    if (autoTimer) return;
+    var topics = ['berth/sensor/001', 'berth/sensor/002', 'berth/status/#'];
+    var payloads = ['01 03 04 00 1A 00 2B 8C 4E', '01 03 04 00 1C 00 31 5A 9F', '7B 22 62 65 72 74 68 22 3A 22 41 30 33 22 7D'];
+    autoTimer = setInterval(function () {
+      var i = Math.floor(Math.random() * topics.length);
+      addMsg('rx', topics[i], 0, payloads[i], false);
+      rxCount++; updateStats();
+    }, 3000);
+  }
+  function stopAutoRx() { if (autoTimer) { clearInterval(autoTimer); autoTimer = null; } }
+
+  /* ---------- 初始化 ---------- */
+  addMsg('rx', 'berth/sensor/001', 0, '01 03 04 00 1A 00 2B 8C 4E', false);
+  addMsg('tx', 'berth/cmd/001', 1, 'AA BB 01 00 FF', false);
+  addMsg('rx', 'berth/status/#', 0, '7B 22 62 65 72 74 68 22 3A 22 41 30 33 22 7D', true);
+  addMsg('auto', 'berth/ack/002', 0, '01 03 02 00 01 78 4C', false);
+
+  setMode('network');
+  document.getElementById('tabSub').style.display = 'none';
+  switchMod('quick');
+</script>
+</body>
+</html>

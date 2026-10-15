@@ -1,0 +1,153 @@
+classDiagram
+    class MqttConfig {
+        +str host = "broker.emqx.io"
+        +int port = 1883
+        +str client_id = ""
+        +str username = ""
+        +str password = ""
+        +int keepalive = 60
+        +bool clean = True
+        +str mqtt_version = "3.1.1"
+        +bool reconnect = True
+        +int reconnect_period = 4000
+        +bool client_id_with_time = False
+    }
+
+    class MqttPublishRequest {
+        +str topic
+        +str payload = ""
+        +str format = "hex"
+        +str encoding = "utf-8"
+        +int qos = 0
+        +bool retain = False
+        +str end_chars = ""
+        +Optional~str~ append_check = None
+    }
+
+    class MqttSubscribeRequest {
+        +str topic
+        +int qos = 0
+    }
+
+    class MqttUnsubscribeRequest {
+        +str topic
+    }
+
+    class ConnectionStats {
+        +int send_bytes = 0
+        +int receive_bytes = 0
+        +int send_count = 0
+        +int receive_count = 0
+        +int error_count = 0
+    }
+
+    class APIResponse {
+        +bool success
+        +str message
+        +Optional~dict~ data = None
+        +Optional~str~ connection_id = None
+    }
+
+    class MqttConnectionManager {
+        -dict connections
+        +connect(config: MqttConfig) APIResponse
+        +disconnect(connection_id: str) APIResponse
+        +publish(connection_id, topic, payload: bytes, qos, retain) APIResponse
+        +subscribe(connection_id, topic, qos) APIResponse
+        +unsubscribe(connection_id, topic) APIResponse
+        +get_subscriptions(connection_id) List~dict~
+        +read_data(connection_id) Optional~Tuple~
+        +get_status(connection_id) Optional~dict~
+        +get_connection(connection_id) Optional~dict~
+        -_gen_client_id() str
+        -_on_connect(client, userdata, flags, reason_code, properties)
+        -_on_disconnect(client, userdata, flags, reason_code, properties)
+        -_on_message(client, userdata, msg)
+        -_on_subscribe(client, userdata, mid, reason_codes, properties)
+        -_on_publish(client, userdata, mid, reason_codes, properties)
+    }
+
+    class MqttConnectionState {
+        <<connection dict>>
+        +Client client
+        +dict config
+        +bool connected
+        +Event connack_event
+        +str connect_error
+        +bool manual_disconnect
+        +ConnectionStats stats
+        +deque queue
+        +dict subscriptions
+    }
+
+    class mqtt_router {
+        <<FastAPI Router /api/mqtt>>
+    }
+
+    class mqtt_websocket {
+        <<WebSocket /ws/mqtt/{connection_id}>>
+    }
+
+    class mqttApi {
+        <<frontend>>
+        +connect(config)
+        +disconnect(connectionId)
+        +publish(connectionId, payload)
+        +subscribe(connectionId, topic, qos)
+        +unsubscribe(connectionId, topic)
+        +getSubscriptions(connectionId)
+        +getStatus(connectionId)
+        +createWebSocket(connectionId, encoding, onMessage, onClose, onError)
+    }
+
+    class MqttSubscriptions {
+        <<Vue Component>>
+        +fillPublishTopic(topic)
+        +addSubscription()
+        +removeSubscription(topic)
+        +setDefault(topic)
+    }
+
+    class MqttMessageCard {
+        <<Vue Component>>
+        +props msg
+    }
+
+    class DebugView {
+        <<Vue View>>
+        +mode
+        +mqttConfig
+        +toggleConnect()
+        +doSend()
+        +onWsMessage(msg)
+    }
+
+    class store {
+        <<reactive store>>
+        +mqttConfig
+        +mqttSubscriptions
+        +mqttMessages
+        +pendingMessages
+        +topicColorMap
+        +addMqttMessage()
+        +flushPendingMessages()
+        +clearMqttMessages()
+        +topicColor(topic)
+    }
+
+    MqttConnectionManager "1" o-- "0..*" MqttConnectionState : manages
+    MqttConnectionState "1" *-- "1" ConnectionStats : has
+    MqttConnectionState "1" o-- "0..*" MqttSubscribeRequest : subscriptions
+    MqttConnectionManager --> APIResponse : returns
+    MqttConnectionManager --> MqttConfig : consumes
+    MqttConnectionManager --> MqttPublishRequest : consumes
+    mqtt_router --> MqttConnectionManager : delegates
+    mqtt_websocket --> MqttConnectionManager : poll read_data
+    mqttApi --> mqtt_router : REST
+    mqttApi --> mqtt_websocket : WS
+    DebugView --> mqttApi : calls
+    DebugView --> store : uses
+    DebugView --> MqttSubscriptions : renders
+    DebugView --> MqttMessageCard : renders
+    MqttSubscriptions --> store : uses
+    MqttMessageCard --> store : topicColor

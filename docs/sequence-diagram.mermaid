@@ -1,0 +1,79 @@
+sequenceDiagram
+    autonumber
+    participant U as 用户
+    participant V as DebugView.vue
+    participant API as mqttApi
+    participant R as routes/mqtt.py
+    participant M as MqttConnectionManager
+    participant P as paho.Client
+    participant B as MQTT Broker
+    participant W as routes/websocket.py
+
+    Note over U,W: 链路一：连接 → 订阅 → 接收 → 推送前端
+
+    U->>V: 点「打开连接」(MQTT 模式)
+    V->>API: connect(mqttConfig)
+    API->>R: POST /api/mqtt/connect
+    R->>M: connect(config)
+    M->>M: client_id 为空则生成 debug-assistant-<8hex>
+    M->>P: Client(VERSION2, client_id)
+    M->>P: user_data_set(connection_id)
+    M->>P: connect(host, port, keepalive)
+    P-->>B: TCP + CONNECT
+    M->>P: loop_start()
+    B-->>P: CONNACK
+    P->>M: on_connect(..., reason_code, ...)
+    Note over M: connected=True; connack_event.set()
+    M->>P: subscribe(订阅表各项) 重放
+    M-->>R: APIResponse(connection_id, client_id)
+    R-->>API: {success, data:{connection_id, client_id}}
+    API-->>V: 连接成功
+    V->>API: createWebSocket(connection_id)
+    API->>W: WS /ws/mqtt/{id}
+
+    U->>V: 右栏「订阅」输入主题+qos，点「订阅」
+    V->>API: subscribe(connection_id, topic, qos)
+    API->>R: POST /api/mqtt/subscribe/{id}
+    R->>M: subscribe(id, topic, qos)
+    M->>P: subscribe(topic, qos)
+    P-->>B: SUBSCRIBE
+    B-->>P: SUBACK
+    P->>M: on_subscribe(..., reason_codes, ...)
+    Note over M: 订阅表 state=subscribed
+    M-->>V: success（前端写入 store.mqttSubscriptions）
+
+    B-->>P: PUBLISH(匹配订阅)
+    P->>M: on_message(client, userdata, msg)
+    M->>M: queue.append((topic, payload, qos, retain)); stats.rx += ; 订阅 count++
+    loop 每 50ms
+        W->>M: asyncio.to_thread(read_data, id)
+        M-->>W: (topic, payload, qos, retain) 或 None
+    end
+    W->>W: format_received_data(payload, encoding)
+    W-->>API: WS data 帧(type=data, topic, hex_data, qos, retain, ...)
+    API-->>V: onMessage(msg)
+    V->>V: addMqttMessage({dir:'RX', topic, qos, retain, ...}, paused)
+    V->>V: topicColor(topic) 着色 + 订阅命中计数渲染
+    V-->>U: 中栏「消息记录」新增消息卡片
+
+    Note over U,B: 链路二：前端发布 → Broker
+
+    U->>V: 填写「发布主题」+ QoS + Retain，点「发送」
+    alt 发布主题为空
+        V-->>U: ElMessage 警告「请先填写发布主题」，中止
+    else 主题非空
+        V->>API: publish(connection_id, {topic, payload, format, encoding, qos, retain, end_chars, append_check})
+        API->>R: POST /api/mqtt/publish/{id}
+        R->>R: format_data_for_send(...) 复用 data_utils
+        R->>M: publish(id, topic, bytes, qos, retain)
+        M->>P: publish(topic, bytes, qos, retain)
+        P-->>B: PUBLISH
+        B-->>P: PUBACK/PUBREC(QoS1/2)
+        P->>M: on_publish(..., reason_codes, ...)
+        M->>M: stats.tx += （不阻塞返回）
+        M-->>R: APIResponse(success, data={mid})
+        R-->>API: {success, data:{mid}}
+        API-->>V: 发送成功
+        V->>V: addMqttMessage({dir:'TX', topic, qos, retain, ...}) 本地即时回显
+        V-->>U: 中栏新增发送方向消息卡片；左栏发送统计 +1
+    end

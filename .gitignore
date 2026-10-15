@@ -1,0 +1,65 @@
+# ---------- Python ----------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+ENV/
+*.egg-info/
+.eggs/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ---------- PyInstaller 构建与产物 ----------
+build/
+build_onefile/
+dist/
+dist_onefile/
+*.manifest
+
+# ---------- 前端 ----------
+node_modules/
+front/dist/
+front/.vite/
+# 前端构建产物（由 npm run build 生成到 backend/static）
+netassist/backend/static/
+
+# ---------- 交付与分发包（体积大，不入库） ----------
+*.exe
+*.zip
+调试助手/
+
+# ---------- 运行时 / 测试输出 ----------
+*.log
+startup.log
+startup_error.log
+scan_result_*.csv
+http_log_*.txt
+http_selftest.txt
+tests/_out/
+tests/_qa_*/
+tests/_qa_tmp/
+
+# ---------- 参考资料（第三方，不入库） ----------
+references/
+
+# ---------- 编辑器 / 系统 ----------
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---------- 本地覆盖配置 ----------
+config.local.json
+*.local.json
+
+# ---------- 项目内部记录 / 平台产物 ----------
+.workbuddy/
+*.genie
+.wbapp_*
